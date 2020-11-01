@@ -185,9 +185,6 @@ def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups):
     list_of_list_graph = lol_graph()
     list_of_list_graph.convert_with_csv(graph_files_name, from_to_groups, directed=True, weighted=True)
 
-    start = time.time()
     probs = iterate_by_layers(list_of_list_graph, limit_of_steps, starting_point)
     passway_probability = normalize_probs_matrix(probs)
-    end = time.time()
-    print("iterate and normelize time: "+str(end-start))
     return passway_probability
