@@ -10,8 +10,8 @@ class lol_graph:
         self._index_list = [0]
         self._neighbors_list = []
         self._weights_list = []
-        self._map_vertex_to_number = {}
-        self._map_number_to_vertex = {}
+        self._map_vertex_to_number = OrderedDict()
+        self._map_number_to_vertex = OrderedDict()
         self.directed = False
         self.weighted = False
 
@@ -64,7 +64,7 @@ class lol_graph:
         '''create the opposite dictionary'''
         self._map_number_to_vertex = OrderedDict((y, x) for x, y in self._map_vertex_to_number.items())
 
-        d = {}
+        d = OrderedDict()
         '''starting to create the index list. Unordered is important'''
         for idx, edge in enumerate(graph):
             d[self._map_vertex_to_number[edge[0]]] = d.get(self._map_vertex_to_number[edge[0]], 0) + 1
@@ -113,6 +113,7 @@ class lol_graph:
                 self._neighbors_list[i] = left
                 if weighted:
                     self._weights_list[i] = weight
+        self.sort_neighbors()
         print()
 
     # convert back to [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]] format using self dicts
@@ -128,6 +129,21 @@ class lol_graph:
                 graph.append(edge)
                 index += 10.
         return graph
+
+    # sort the neighbors for each vertex
+    def sort_neighbors(self):
+        for number in range(len(self._index_list) - 1):
+            start = self._index_list[number]
+            end = self._index_list[number + 1]
+            if self.weighted:
+                if start == 230:
+                    print()
+                neighbors_weights = {self._neighbors_list[i]: self._weights_list[i] for i in range(start, end)}
+                neighbors_weights = OrderedDict(sorted(neighbors_weights.items()))
+                self._neighbors_list[start: end] = neighbors_weights.keys()
+                self._weights_list[start: end] = neighbors_weights.values()
+            else:
+                self._neighbors_list[start: end] = sorted(self._neighbors_list[start: end])
 
     # get neighbors of specific node n
     def neighbors(self, vertex):
@@ -172,15 +188,15 @@ if __name__ == '__main__':
     #                    os.walk(rootDir) for file in filenames]
     #
     list_of_list_graph = lol_graph()
-    # graph_filenames = ["C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_4\\yoram_network_4_graph_1_01.csv"]
+    graph_filenames = ["C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_4\\yoram_network_4_graph_1_01.csv"]
     #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_1_10.csv",
     #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_2_01.csv",
     #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_2_10.csv",
     #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_3_01.csv",
     #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_3_10.csv"]
     #
-    # list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (0, 2), (2, 0)], directed=True, weighted=True)
-    list_of_list_graph.convert([[1,2], [3,2]], directed=True, weighted=False)
+    list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (0, 2), (2, 0)], directed=True, weighted=True)
+    # list_of_list_graph.convert([[1,2,90], [3,2, 190], [3, 1, 290], [2, 1, 390]], directed=True, weighted=True)
 
     # print(list_of_list_graph._index_list)
     # print(list_of_list_graph._index_list)
