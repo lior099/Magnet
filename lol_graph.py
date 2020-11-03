@@ -6,14 +6,107 @@ import csv
 
 class lol_graph:
 
-    def __init__(self):
-        self._index_list = [0]
-        self._neighbors_list = []
-        self._weights_list = []
-        self._map_vertex_to_number = OrderedDict()
-        self._map_number_to_vertex = OrderedDict()
-        self.directed = False
-        self.weighted = False
+    def __init__(self, index_list=[0], neighbors_list=[], weights_list=[], map_vertex_to_number=OrderedDict(),
+                 map_number_to_vertex=OrderedDict(), directed=False, weighted=False):
+        self._index_list = index_list
+        self._neighbors_list = neighbors_list
+        self._weights_list = weights_list
+        self._map_vertex_to_number = map_vertex_to_number
+        self._map_number_to_vertex = map_number_to_vertex
+        self.directed = directed
+        self.weighted = weighted
+
+    def number_of_edges(self):
+        return len(self._neighbors_list)
+        # return sum(1 for neighbor in self._neighbors_list if neighbor is not None)
+
+    def number_of_vertices(self):
+        return len(self._index_list) - 1
+        # return sum(1 for vertex in self._index_list if vertex is not None) - 1
+
+    def deep_copy(self):
+        return lol_graph(self._index_list.copy(), self._neighbors_list.copy(), self._weights_list.copy(),
+                         self._map_vertex_to_number.copy(), self._map_number_to_vertex.copy(), self.directed, self.weighted)
+    # outdegree
+    def sum_weight_from_node(self, node):
+        if self.weighted:
+            neighbors_list, weights_list = self.neighbors(node)
+            return sum(weights_list)
+        else:
+            neighbors_list = self.neighbors(node)
+            return len(neighbors_list)
+
+    # Iterative Binary Search Function
+    # It returns index of x in given array arr if present,
+    # else returns -1
+    def binary_search(self, arr, x):
+        low = 0
+        high = len(arr) - 1
+        mid = 0
+
+        while low <= high:
+            mid = (high + low) // 2
+
+            # Check if x is present at mid
+            if arr[mid] < x:
+                low = mid + 1
+
+            # If x is greater, ignore left half
+            elif arr[mid] > x:
+                high = mid - 1
+
+            # If x is smaller, ignore right half
+            else:
+                return mid
+
+        # If we reach here, then the element was not present
+        return -1
+
+    # indegree
+    def sum_weight_to_node(self, node):
+        sum = 0
+        for vertex in self.get_vertices_list():
+            if self.weighted:
+                neighbors_list, weights_list = self.neighbors(vertex)
+            else:
+                neighbors_list = self.neighbors(vertex)
+            x = self.binary_search(neighbors_list, node)
+            if x is not -1:
+                if self.weighted:
+                    sum += weights_list[x]
+                else:
+                    sum += 1
+        return sum
+
+    def all_nodes_directed_to_node(self, node):
+        nodes_list = []
+        for vertex in self.get_vertices_list():
+            neighbors_list, weights_list = self.neighbors(vertex)
+            x = self.binary_search(neighbors_list, node)
+            if x is not -1:
+                nodes_list.append(vertex)
+        return nodes_list
+
+    def get_vertices_list(self):
+        return self._map_vertex_to_number.keys()
+
+    def get_edge_list(self):
+        return self.convert_back()
+
+    def is_edge_between_nodes(self, node1, node2):
+        neighbors_list, weights_list = self.neighbors(node1)
+        x = self.binary_search(neighbors_list, node2)
+        return x is not -1
+
+    def get_weight_of_edge(self, node1, node2):
+        if self.weighted:
+            neighbors_list, weights_list = self.neighbors(node1)
+            x = self.binary_search(neighbors_list, node2)
+            if x is not -1:
+                return weights_list[x]
+            print("There is no edge between ", node1, " and ", node2)
+        else:
+            print("Notice: The graph is not weighted")
 
     # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
     def convert_with_csv(self, files_name, array_of_groups, directed=False, weighted=False):
@@ -28,7 +121,6 @@ class lol_graph:
             if tuple[1] not in group_names_dict.keys():
                 group_names_dict[tuple[1]] = ch
                 ch = chr(ord(ch) + 1)
-
 
         list_of_list = []
         for i in range(len(files_name)):
@@ -127,7 +219,7 @@ class lol_graph:
                 weight = self._weights_list[index]
                 edge = [vertex, to_vertex, weight]
                 graph.append(edge)
-                index += 10.
+                index += 1
         return graph
 
     # sort the neighbors for each vertex
@@ -136,8 +228,6 @@ class lol_graph:
             start = self._index_list[number]
             end = self._index_list[number + 1]
             if self.weighted:
-                if start == 230:
-                    print()
                 neighbors_weights = {self._neighbors_list[i]: self._weights_list[i] for i in range(start, end)}
                 neighbors_weights = OrderedDict(sorted(neighbors_weights.items()))
                 self._neighbors_list[start: end] = neighbors_weights.keys()
@@ -177,38 +267,28 @@ class lol_graph:
                 graph_adjacency_dict[vertex] = self.neighbors(vertex)
         return graph_adjacency_dict
 
+
 if __name__ == '__main__':
-    # graph = np.array([[0, 1, 1], [0, 2, 2], [0, 3, 3], [3, 2, 32], [2, 0, 20], [3, 1, 31]])  # code should work on this
-    # l1, l2, l3, t1, t2 = weighted_directional_convert(graph)
-
-    # graph = np.array([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45]])
-    # l1, l2, l3, t1, t2 = weighted_directional_convert(graph)
-    # rootDir = os.path.join(os.path.join("", "PathwayProbabilitiesCalculation", "data", "yoram_network_1"))
-    # graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
-    #                    os.walk(rootDir) for file in filenames]
-    #
     list_of_list_graph = lol_graph()
-    graph_filenames = ["C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_4\\yoram_network_4_graph_1_01.csv"]
-    #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_1_10.csv",
-    #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_2_01.csv",
-    #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_2_10.csv",
-    #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_3_01.csv",
-    #                    # "C:\\Users\\User\\PycharmProjects\\git_code\\MultipartiteCommunityDetection\\data\\yoram_network_1\\yoram_network_1_graph_3_10.csv"]
-    #
-    list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (0, 2), (2, 0)], directed=True, weighted=True)
-    # list_of_list_graph.convert([[1,2,90], [3,2, 190], [3, 1, 290], [2, 1, 390]], directed=True, weighted=True)
+    rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", "toy_network_1")
+    graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
+                              os.walk(rootDir) for file in filenames]
+    graph_filenames.sort()
+    list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
+    # list_of_list_graph.convert([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45]],  True, True)
 
-    # print(list_of_list_graph._index_list)
-    # print(list_of_list_graph._index_list)
-    # print(list_of_list_graph._index_list)
     # print("index list", list_of_list_graph._index_list)
     # print("neighbors list", list_of_list_graph._neighbors_list)
     # print("weights list", list_of_list_graph._weights_list)
     # print("map_vertex_to_number", list_of_list_graph._map_vertex_to_number)
     # print("map_number_to_vertex", list_of_list_graph._map_number_to_vertex)
     # print("BACK "+ str(list_of_list_graph.convert_back()))
-    print("graph.adj - ", list_of_list_graph.graph_adjacency())
-    # print(list_of_list_graph.graph_adjacency())
-    # ns = convert_back(graph)
-    # print(ns)
-    # print(neighbors(5, l1, l2, t1, t2))
+    # # print("graph.adj - ", list_of_list_graph.graph_adjacency())
+    # print("number of edges", list_of_list_graph.number_of_edges())
+    # print("number of vertices", list_of_list_graph.number_of_vertices())
+    # print("sum_weight_from_node", list_of_list_graph.sum_weight_from_node("5a"))
+    # print("sum_weight_to_node", list_of_list_graph.sum_weight_to_node("5a"))
+    # print("all nodes to node", "8c", list_of_list_graph.all_nodes_directed_to_node("8c"))
+    # print("edge list:", list_of_list_graph.get_edge_list())
+    # print(list_of_list_graph.get_weight_of_edge("1a", "1b"))
+
