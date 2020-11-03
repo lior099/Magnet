@@ -120,16 +120,18 @@ if __name__ == '__main__':
     elif task_number == '3' and args.source:
         max_steps = 4
         starting_point = '2a'
-        graph_file_names = []
-        for g in range(1, 4):
-            graph_file_names.append(
-                os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_01.csv"))
-            graph_file_names.append(
-                os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_10.csv"))
+        rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir)
+        graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
+                            os.walk(rootDir) for file in filenames]
+        graph_file_names.sort() #optional
+        # for g in range(1, 4):
+        #     graph_file_names.append(
+        #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_01.csv"))
+        #     graph_file_names.append(
+        #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_10.csv"))
 
         from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
         # multipartite_graph = load_graph(graph_file_names)
-
         print(task3(max_steps, starting_point, graph_file_names, from_to_groups))
     else:
         print("wrong/missing arguments...")
