@@ -139,7 +139,6 @@ class lol_graph:
 
     # input: np array of edges, in the form of np array [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]]
     def convert(self, graph, directed=False, weighted=False):
-        self._map_vertex_to_number = OrderedDict()
         self.directed = directed
         self.weighted = weighted
         free = 0
@@ -160,29 +159,28 @@ class lol_graph:
         '''starting to create the index list. Unordered is important'''
         for idx, edge in enumerate(graph):
             d[self._map_vertex_to_number[edge[0]]] = d.get(self._map_vertex_to_number[edge[0]], 0) + 1
-            if not directed:
+            if not self.directed:
                 d[self._map_vertex_to_number[edge[1]]] = d.get(self._map_vertex_to_number[edge[1]], 0) + 1
             elif self._map_vertex_to_number[edge[1]] not in d.keys():
                 d[self._map_vertex_to_number[edge[1]]] = 0
 
-        # list = [0]
         '''transfer the dictionary to list'''
         for j in range(1, len(d.keys()) + 1):
             self._index_list.append(self._index_list[j - 1] + d.get(j - 1, 0))
 
         '''create the second list'''
-        if directed:
+        if self.directed:
             self._neighbors_list = [-1] * len(graph)
         else:
             self._neighbors_list = [-1] * len(graph) * 2
-        if weighted:
+        if self.weighted:
             self._weights_list = [0] * len(graph)
 
         space = OrderedDict((x, -1) for x in self._map_number_to_vertex.keys())
         for idx, edge in enumerate(graph):
             left = self._map_vertex_to_number[edge[0]]
             right = self._map_vertex_to_number[edge[1]]
-            if weighted:
+            if self.weighted:
                 weight = float(edge[2])
 
             if space[left] != -1:
@@ -192,10 +190,10 @@ class lol_graph:
                 i = self._index_list[left]
                 space[left] = i
             self._neighbors_list[i] = right
-            if weighted:
+            if self.weighted:
                 self._weights_list[i] = weight
 
-            if not directed:
+            if not self.directed:
                 if space[right] != -1:
                     space[right] += 1
                     i = space[right]
@@ -203,10 +201,11 @@ class lol_graph:
                     i = self._index_list[right]
                     space[right] = i
                 self._neighbors_list[i] = left
-                if weighted:
+                if self.weighted:
                     self._weights_list[i] = weight
-        self.sort_neighbors()
-        print()
+        self._neighbors_list, self._weights_list = self.sort_all(index_list=self._index_list,
+                                                                 neighbors_list=self._neighbors_list,
+                                                                 weights_list=self._weights_list)
 
     # convert back to [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]] format using self dicts
     def convert_back(self):
@@ -223,17 +222,21 @@ class lol_graph:
         return graph
 
     # sort the neighbors for each vertex
-    def sort_neighbors(self):
-        for number in range(len(self._index_list) - 1):
-            start = self._index_list[number]
-            end = self._index_list[number + 1]
-            if self.weighted:
-                neighbors_weights = {self._neighbors_list[i]: self._weights_list[i] for i in range(start, end)}
-                neighbors_weights = OrderedDict(sorted(neighbors_weights.items()))
-                self._neighbors_list[start: end] = neighbors_weights.keys()
-                self._weights_list[start: end] = neighbors_weights.values()
-            else:
-                self._neighbors_list[start: end] = sorted(self._neighbors_list[start: end])
+    def sort_all(self, index_list=None, neighbors_list=None, weights_list=None):
+        for number in range(len(index_list) - 1):
+            start = index_list[number]
+            end = index_list[number + 1]
+            neighbors_list[start: end], weights_list[start: end] = self.sort_neighbors(neighbors_list[start: end], weights_list[start: end])
+        return neighbors_list, weights_list
+
+    def sort_neighbors(self, neighbors_list=None, weights_list=None):
+        if self.weighted:
+            neighbors_weights = {neighbors_list[i]: weights_list[i] for i in range(len(neighbors_list))}
+            neighbors_weights = OrderedDict(sorted(neighbors_weights.items()))
+            return neighbors_weights.keys(), neighbors_weights.values()
+        else:
+            return sorted(neighbors_list), weights_list
+
 
     # get neighbors of specific node n
     def neighbors(self, vertex):
@@ -267,6 +270,129 @@ class lol_graph:
                 graph_adjacency_dict[vertex] = self.neighbors(vertex)
         return graph_adjacency_dict
 
+    # Add new edges to the graph, but with limitations:
+    # For example, if the edge is [w,v] and the graph is diracted, w can't be an existing vertex.
+    # if the graph is not diracted, w and v can't be existing vertices.
+    def add_edges(self, edges):
+        last_index = self._index_list[-1]
+        index_list = [last_index]
+        neighbors_list = []
+        weights_list = []
+
+        vertices_amount = len(self._map_vertex_to_number.keys())
+        free = vertices_amount
+        map_vertex_to_number = OrderedDict()
+
+        '''create dictionary to self._map_vertex_to_number from edges to our new numbering'''
+        for edge in edges:
+            if (self._map_vertex_to_number.get(edge[0], None) is not None or
+                (not self.directed and self._map_vertex_to_number.get(edge[1], None) is not None)):
+                print("Error: add_edges can't add edges from an existing vertex")
+                return
+            if map_vertex_to_number.get(edge[0], None) is None:
+                map_vertex_to_number[edge[0]] = free
+                free += 1
+            if map_vertex_to_number.get(edge[1], None) is None and self._map_vertex_to_number.get(edge[1], None) is None:
+                map_vertex_to_number[edge[1]] = free
+                free += 1
+        '''create the opposite dictionary'''
+        map_number_to_vertex = OrderedDict((y, x) for x, y in map_vertex_to_number.items())
+
+        """update the original dicts"""
+        self._map_vertex_to_number.update(map_vertex_to_number)
+        self._map_number_to_vertex.update(map_number_to_vertex)
+
+        d = OrderedDict()
+        '''starting to create the index list. Unordered is important'''
+        for idx, edge in enumerate(edges):
+            d[self._map_vertex_to_number[edge[0]]] = d.get(self._map_vertex_to_number[edge[0]], 0) + 1
+            if not self.directed:
+                d[self._map_vertex_to_number[edge[1]]] = d.get(self._map_vertex_to_number[edge[1]], 0) + 1
+            elif self._map_vertex_to_number[edge[1]] not in d.keys() and edge[1] in map_vertex_to_number.keys():
+                d[self._map_vertex_to_number[edge[1]]] = 0
+
+        '''transfer the dictionary to list'''
+        for j in range(1, len(d.keys()) + 1):
+            index_list.append(index_list[j - 1] + d.get(vertices_amount + j - 1, 0))
+
+        '''create the second list'''
+        if self.directed:
+            neighbors_list = [-1] * len(edges)
+        else:
+            neighbors_list = [-1] * len(edges) * 2
+        if self.weighted:
+            weights_list = [0] * len(edges)
+
+        space = OrderedDict((x, -1) for x in self._map_number_to_vertex.keys())
+        for idx, edge in enumerate(edges):
+            left = self._map_vertex_to_number[edge[0]]
+            right = self._map_vertex_to_number[edge[1]]
+            if self.weighted:
+                weight = float(edge[2])
+
+            if space[left] != -1:
+                space[left] += 1
+                i = space[left]
+            else:
+                i = index_list[left - vertices_amount] - last_index
+                space[left] = i
+            neighbors_list[i] = right
+            if self.weighted:
+                weights_list[i] = weight
+
+            if not self.directed:
+                if space[right] != -1:
+                    space[right] += 1
+                    i = space[right]
+                else:
+                    i = index_list[right - len(self._index_list) - 1]
+                    space[right] = i
+                neighbors_list[i] = left
+                if self.weighted:
+                    weights_list[i] = weight
+
+        """sort the neighbors"""
+        neighbors_list, weights_list = self.sort_all(index_list=index_list,
+                                                     neighbors_list=neighbors_list,
+                                                     weights_list=weights_list)
+
+        """update the original dicts"""
+        self._index_list += index_list[1:]
+        self._neighbors_list += neighbors_list
+        self._weights_list += weights_list
+
+
+    # swap between two edges, but with limitations.
+    # For example, the graph can only be directed.
+    # The swap can only be in the form of: from edge [a,b] to edge [a, c].
+    def swap_edge(self, edge_to_delete, edge_to_add):
+        if not self.directed or (self.directed and edge_to_delete[0] != edge_to_add[0]):
+            print("Error: swap_edge can only be only on directed graph and from the same vertex")
+        number = self._map_vertex_to_number[edge_to_add[0]]
+        to_number = self._map_vertex_to_number[edge_to_add[1]]
+        from_number = self._map_vertex_to_number[edge_to_delete[1]]
+        start_index_of_source = self._index_list[number]
+        end_index_of_source = self._index_list[number+1]
+
+        neighbors_list = self._neighbors_list[start_index_of_source: end_index_of_source]
+        neighbor_index = self.binary_search(neighbors_list, from_number)
+        neighbors_list[neighbor_index] = to_number
+
+        if self.weighted:
+            weights_list = self._weights_list[start_index_of_source: end_index_of_source]
+            weights_list[neighbor_index] = edge_to_add[2]
+            neighbor_index, weights_list = self.sort_neighbors(neighbors_list, weights_list)
+            self._weights_list[start_index_of_source: end_index_of_source] = weights_list
+            # index_of_replacement = start_index_of_source + neighbor_index
+            # neighbors_list[neighbor_index] = to_number
+            # weights_list[neighbor_index] = edge_to_add[2]
+
+        else:
+            neighbor_index, weights_list = self.sort_neighbors(neighbors_list)
+        self._neighbors_list[start_index_of_source: end_index_of_source] = neighbor_index
+
+
+
 
 if __name__ == '__main__':
     list_of_list_graph = lol_graph()
@@ -276,7 +402,6 @@ if __name__ == '__main__':
     graph_filenames.sort()
     list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
     # list_of_list_graph.convert([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45]],  True, True)
-
     # print("index list", list_of_list_graph._index_list)
     # print("neighbors list", list_of_list_graph._neighbors_list)
     # print("weights list", list_of_list_graph._weights_list)
@@ -291,4 +416,3 @@ if __name__ == '__main__':
     # print("all nodes to node", "8c", list_of_list_graph.all_nodes_directed_to_node("8c"))
     # print("edge list:", list_of_list_graph.get_edge_list())
     # print(list_of_list_graph.get_weight_of_edge("1a", "1b"))
-
