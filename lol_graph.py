@@ -2,6 +2,7 @@ import os
 import numpy as np
 from collections import OrderedDict
 import csv
+import sys
 
 
 class lol_graph:
@@ -394,6 +395,12 @@ class lol_graph:
         else:
             neighbor_index, weights_list = self.sort_neighbors(neighbors_list)
         self._neighbors_list[start_index_of_source: end_index_of_source] = neighbor_index
+
+    # get memory usage of the lol object
+    def get_memory(self):
+        return sum([sys.getsizeof(var) for var in [self._index_list, self._neighbors_list, self._weights_list,
+                                                   self._map_vertex_to_number, self._map_number_to_vertex,
+                                                   self.directed, self.weighted]])
 
 
 
