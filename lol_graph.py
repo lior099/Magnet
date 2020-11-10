@@ -368,6 +368,10 @@ class lol_graph:
     def swap_edge(self, edge_to_delete, edge_to_add):
         if not self.directed or (self.directed and edge_to_delete[0] != edge_to_add[0]):
             print("Error: swap_edge can only be only on directed graph and from the same vertex")
+            return
+        if not self.is_edge_between_nodes(edge_to_delete[0], edge_to_delete[1]):
+            print("Error: edge_to_delete was not found")
+            return
         number = self._map_vertex_to_number[edge_to_add[0]]
         to_number = self._map_vertex_to_number[edge_to_add[1]]
         from_number = self._map_vertex_to_number[edge_to_delete[1]]
