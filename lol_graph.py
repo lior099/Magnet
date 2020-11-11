@@ -7,29 +7,35 @@ import sys
 
 class lol_graph:
 
-    def __init__(self, index_list=[0], neighbors_list=[], weights_list=[], map_vertex_to_number=OrderedDict(),
-                 map_number_to_vertex=OrderedDict(), directed=False, weighted=False):
+    def __init__(self, index_list=[0], neighbors_list=[], weights_list=[], map_node_to_number=OrderedDict(),
+                 map_number_to_node=OrderedDict(), directed=False, weighted=False):
         self._index_list = index_list
         self._neighbors_list = neighbors_list
         self._weights_list = weights_list
-        self._map_vertex_to_number = map_vertex_to_number
-        self._map_number_to_vertex = map_number_to_vertex
+        self._map_node_to_number = map_node_to_number
+        self._map_number_to_node = map_number_to_node
         self.directed = directed
         self.weighted = weighted
+
+    def is_directed(self):
+        return self.directed
+
+    def is_weighted(self):
+        return self.weighted
 
     def number_of_edges(self):
         return len(self._neighbors_list)
         # return sum(1 for neighbor in self._neighbors_list if neighbor is not None)
 
-    def number_of_vertices(self):
+    def number_of_nodes(self):
         return len(self._index_list) - 1
-        # return sum(1 for vertex in self._index_list if vertex is not None) - 1
+        # return sum(1 for node in self._index_list if node is not None) - 1
 
-    def deep_copy(self):
+    def copy(self):
         return lol_graph(self._index_list.copy(), self._neighbors_list.copy(), self._weights_list.copy(),
-                         self._map_vertex_to_number.copy(), self._map_number_to_vertex.copy(), self.directed, self.weighted)
+                         self._map_node_to_number.copy(), self._map_number_to_node.copy(), self.directed, self.weighted)
     # outdegree
-    def sum_weight_from_node(self, node):
+    def out_degree(self, node):
         if self.weighted:
             neighbors_list, weights_list = self.neighbors(node)
             return sum(weights_list)
@@ -64,106 +70,108 @@ class lol_graph:
         return -1
 
     # indegree
-    def sum_weight_to_node(self, node):
+    def in_degree(self, node):
         sum = 0
-        for vertex in self.get_vertices_list():
+        for node_from in self.nodes():
             if self.weighted:
-                neighbors_list, weights_list = self.neighbors(vertex)
+                neighbors_list, weights_list = self.neighbors(node_from)
             else:
-                neighbors_list = self.neighbors(vertex)
+                neighbors_list = self.neighbors(node_from)
             x = self.binary_search(neighbors_list, node)
-            if x is not -1:
+            if x != -1:
                 if self.weighted:
                     sum += weights_list[x]
                 else:
                     sum += 1
         return sum
 
-    def all_nodes_directed_to_node(self, node):
+    def predecessors(self, node):
         nodes_list = []
-        for vertex in self.get_vertices_list():
-            neighbors_list, weights_list = self.neighbors(vertex)
+        for node_from in self.nodes():
+            neighbors_list, weights_list = self.neighbors(node_from)
             x = self.binary_search(neighbors_list, node)
-            if x is not -1:
-                nodes_list.append(vertex)
+            if x != -1:
+                nodes_list.append(node_from)
         return nodes_list
 
-    def get_vertices_list(self):
-        return self._map_vertex_to_number.keys()
+    def nodes(self):
+        return self._map_node_to_number.keys()
 
-    def get_edge_list(self):
+    def edges(self):
         return self.convert_back()
 
     def is_edge_between_nodes(self, node1, node2):
         neighbors_list, weights_list = self.neighbors(node1)
         x = self.binary_search(neighbors_list, node2)
-        return x is not -1
+        return x != -1
 
-    def get_weight_of_edge(self, node1, node2):
+    def size(self):
+        if self.weighted and not self.directed:
+            return sum(self._weights_list) / 2
+        if self.weighted:
+            return sum(self._weights_list)
+        if not self.directed:
+            return len(self._neighbors_list) / 2
+        return len(self._neighbors_list)
+
+
+    def get_edge_data(self, node1, node2):
         if self.weighted:
             neighbors_list, weights_list = self.neighbors(node1)
             x = self.binary_search(neighbors_list, node2)
-            if x is not -1:
+            if x != -1:
                 return weights_list[x]
             print("There is no edge between ", node1, " and ", node2)
         else:
             print("Notice: The graph is not weighted")
 
     # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
-    def convert_with_csv(self, files_name, array_of_groups, directed=False, weighted=False):
-        self._map_vertex_to_number = OrderedDict()
-        group_names_dict = dict()
-        ch = 'a'
-
-        for tuple in array_of_groups:
-            if tuple[0] not in group_names_dict.keys():
-                group_names_dict[tuple[0]] = ch
-                ch = chr(ord(ch) + 1)
-            if tuple[1] not in group_names_dict.keys():
-                group_names_dict[tuple[1]] = ch
-                ch = chr(ord(ch) + 1)
-
-        list_of_list = []
+    def convert_with_csv(self, files_name, graphs_directions, directed=False, weighted=False, header=True):
+        self._map_node_to_number = OrderedDict()
+        graph = []
         for i in range(len(files_name)):
             file = files_name[i]
             with open(file, "r") as csvfile:
                 datareader = csv.reader(csvfile)
-                next(datareader, None)  # skip the headers
+                if header:
+                    next(datareader, None)  # skip the headers
                 for edge in datareader:
-                    named_edge = [edge[0] + group_names_dict[array_of_groups[i][0]],
-                                  edge[1] + group_names_dict[array_of_groups[i][1]]]
+                    named_edge = [str(graphs_directions[i][0]) + edge[0],
+                                  str(graphs_directions[i][1]) + edge[1]]
                     if weighted:
                         named_edge.append(float(edge[2]))
-                    list_of_list.append(named_edge)
+                    graph.append(named_edge)
                 csvfile.close()
-        self.convert(list_of_list, directed, weighted)
+        self.convert(graph, directed, weighted)
+
+
 
     # input: np array of edges, in the form of np array [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]]
     def convert(self, graph, directed=False, weighted=False):
         self.directed = directed
         self.weighted = weighted
         free = 0
-        '''create dictionary to self._map_vertex_to_number from edges to our new numbering'''
+        '''create dictionary to self._map_node_to_number from edges to our new numbering'''
 
         for edge in graph:
-            if self._map_vertex_to_number.get(edge[0], None) is None:
-                self._map_vertex_to_number[edge[0]] = free
+            if self._map_node_to_number.get(edge[0], None) is None:
+                self._map_node_to_number[edge[0]] = free
                 free += 1
-            if self._map_vertex_to_number.get(edge[1], None) is None:
-                self._map_vertex_to_number[edge[1]] = free
+            if self._map_node_to_number.get(edge[1], None) is None:
+                self._map_node_to_number[edge[1]] = free
                 free += 1
 
         '''create the opposite dictionary'''
-        self._map_number_to_vertex = OrderedDict((y, x) for x, y in self._map_vertex_to_number.items())
+        self._map_number_to_node = OrderedDict((y, x) for x, y in self._map_node_to_number.items())
 
         d = OrderedDict()
         '''starting to create the index list. Unordered is important'''
         for idx, edge in enumerate(graph):
-            d[self._map_vertex_to_number[edge[0]]] = d.get(self._map_vertex_to_number[edge[0]], 0) + 1
+            d[self._map_node_to_number[edge[0]]] = d.get(self._map_node_to_number[edge[0]], 0) + 1
             if not self.directed:
-                d[self._map_vertex_to_number[edge[1]]] = d.get(self._map_vertex_to_number[edge[1]], 0) + 1
-            elif self._map_vertex_to_number[edge[1]] not in d.keys():
-                d[self._map_vertex_to_number[edge[1]]] = 0
+                d[self._map_node_to_number[edge[1]]] = d.get(self._map_node_to_number[edge[1]], 0) + 1
+            elif self._map_node_to_number[edge[1]] not in d.keys():
+                d[self._map_node_to_number[edge[1]]] = 0
 
         '''transfer the dictionary to list'''
         for j in range(1, len(d.keys()) + 1):
@@ -177,10 +185,10 @@ class lol_graph:
         if self.weighted:
             self._weights_list = [0] * len(graph)
 
-        space = OrderedDict((x, -1) for x in self._map_number_to_vertex.keys())
+        space = OrderedDict((x, -1) for x in self._map_number_to_node.keys())
         for idx, edge in enumerate(graph):
-            left = self._map_vertex_to_number[edge[0]]
-            right = self._map_vertex_to_number[edge[1]]
+            left = self._map_node_to_number[edge[0]]
+            right = self._map_node_to_number[edge[1]]
             if self.weighted:
                 weight = float(edge[2])
 
@@ -212,17 +220,17 @@ class lol_graph:
     def convert_back(self):
         graph = []
         for number in range(len(self._index_list) - 1):
-            vertex = self._map_number_to_vertex[number]
+            node = self._map_number_to_node[number]
             index = self._index_list[number]
             while index < self._index_list[number + 1]:
-                to_vertex = self._map_number_to_vertex[self._neighbors_list[index]]
+                to_node = self._map_number_to_node[self._neighbors_list[index]]
                 weight = self._weights_list[index]
-                edge = [vertex, to_vertex, weight]
+                edge = [node, to_node, weight]
                 graph.append(edge)
                 index += 1
         return graph
 
-    # sort the neighbors for each vertex
+    # sort the neighbors for each node
     def sort_all(self, index_list=None, neighbors_list=None, weights_list=None):
         for number in range(len(index_list) - 1):
             start = index_list[number]
@@ -240,13 +248,13 @@ class lol_graph:
 
 
     # get neighbors of specific node n
-    def neighbors(self, vertex):
-        node = self._map_vertex_to_number[vertex]
-        idx = self._index_list[node]
+    def neighbors(self, node):
+        number = self._map_node_to_number[node]
+        idx = self._index_list[number]
         neighbors_list = []
         weights_list = []
-        while idx < self._index_list[node + 1]:
-            neighbors_list.append(self._map_number_to_vertex[self._neighbors_list[idx]])
+        while idx < self._index_list[number + 1]:
+            neighbors_list.append(self._map_number_to_node[self._neighbors_list[idx]])
             if self.weighted:
                 weights_list.append(self._weights_list[idx])
             idx += 1
@@ -255,66 +263,66 @@ class lol_graph:
         else:
             return neighbors_list
 
-    # get neighbors and weights for every vertex
+    # get neighbors and weights for every node
     def graph_adjacency(self):
         graph_adjacency_dict = dict()
         for number in range(len(self._index_list) - 1):
-            vertex = self._map_number_to_vertex[number]
-            if vertex not in graph_adjacency_dict.keys():
-                graph_adjacency_dict[vertex] = dict()
+            node = self._map_number_to_node[number]
+            if node not in graph_adjacency_dict.keys():
+                graph_adjacency_dict[node] = dict()
 
             if self.weighted:
-                neighbors_list, weights_list = self.neighbors(vertex)
+                neighbors_list, weights_list = self.neighbors(node)
                 for neighbor, weight in zip(neighbors_list, weights_list):
-                    graph_adjacency_dict[vertex][neighbor] = {'weight': weight}
+                    graph_adjacency_dict[node][neighbor] = {'weight': weight}
             else:
-                graph_adjacency_dict[vertex] = self.neighbors(vertex)
+                graph_adjacency_dict[node] = self.neighbors(node)
         return graph_adjacency_dict
 
     # Add new edges to the graph, but with limitations:
-    # For example, if the edge is [w,v] and the graph is diracted, w can't be an existing vertex.
-    # if the graph is not diracted, w and v can't be existing vertices.
+    # For example, if the edge is [w,v] and the graph is diracted, w can't be an existing node.
+    # if the graph is not diracted, w and v can't be existing nodes.
     def add_edges(self, edges):
         last_index = self._index_list[-1]
         index_list = [last_index]
         neighbors_list = []
         weights_list = []
 
-        vertices_amount = len(self._map_vertex_to_number.keys())
-        free = vertices_amount
-        map_vertex_to_number = OrderedDict()
+        nodes_amount = len(self._map_node_to_number.keys())
+        free = nodes_amount
+        map_node_to_number = OrderedDict()
 
-        '''create dictionary to self._map_vertex_to_number from edges to our new numbering'''
+        '''create dictionary to self._map_node_to_number from edges to our new numbering'''
         for edge in edges:
-            if (self._map_vertex_to_number.get(edge[0], None) is not None or
-                (not self.directed and self._map_vertex_to_number.get(edge[1], None) is not None)):
-                print("Error: add_edges can't add edges from an existing vertex")
+            if (self._map_node_to_number.get(edge[0], None) is not None or
+                (not self.directed and self._map_node_to_number.get(edge[1], None) is not None)):
+                print("Error: add_edges can't add edges from an existing node")
                 return
-            if map_vertex_to_number.get(edge[0], None) is None:
-                map_vertex_to_number[edge[0]] = free
+            if map_node_to_number.get(edge[0], None) is None:
+                map_node_to_number[edge[0]] = free
                 free += 1
-            if map_vertex_to_number.get(edge[1], None) is None and self._map_vertex_to_number.get(edge[1], None) is None:
-                map_vertex_to_number[edge[1]] = free
+            if map_node_to_number.get(edge[1], None) is None and self._map_node_to_number.get(edge[1], None) is None:
+                map_node_to_number[edge[1]] = free
                 free += 1
         '''create the opposite dictionary'''
-        map_number_to_vertex = OrderedDict((y, x) for x, y in map_vertex_to_number.items())
+        map_number_to_node = OrderedDict((y, x) for x, y in map_node_to_number.items())
 
         """update the original dicts"""
-        self._map_vertex_to_number.update(map_vertex_to_number)
-        self._map_number_to_vertex.update(map_number_to_vertex)
+        self._map_node_to_number.update(map_node_to_number)
+        self._map_number_to_node.update(map_number_to_node)
 
         d = OrderedDict()
         '''starting to create the index list. Unordered is important'''
         for idx, edge in enumerate(edges):
-            d[self._map_vertex_to_number[edge[0]]] = d.get(self._map_vertex_to_number[edge[0]], 0) + 1
+            d[self._map_node_to_number[edge[0]]] = d.get(self._map_node_to_number[edge[0]], 0) + 1
             if not self.directed:
-                d[self._map_vertex_to_number[edge[1]]] = d.get(self._map_vertex_to_number[edge[1]], 0) + 1
-            elif self._map_vertex_to_number[edge[1]] not in d.keys() and edge[1] in map_vertex_to_number.keys():
-                d[self._map_vertex_to_number[edge[1]]] = 0
+                d[self._map_node_to_number[edge[1]]] = d.get(self._map_node_to_number[edge[1]], 0) + 1
+            elif self._map_node_to_number[edge[1]] not in d.keys() and edge[1] in map_node_to_number.keys():
+                d[self._map_node_to_number[edge[1]]] = 0
 
         '''transfer the dictionary to list'''
         for j in range(1, len(d.keys()) + 1):
-            index_list.append(index_list[j - 1] + d.get(vertices_amount + j - 1, 0))
+            index_list.append(index_list[j - 1] + d.get(nodes_amount + j - 1, 0))
 
         '''create the second list'''
         if self.directed:
@@ -324,10 +332,10 @@ class lol_graph:
         if self.weighted:
             weights_list = [0] * len(edges)
 
-        space = OrderedDict((x, -1) for x in self._map_number_to_vertex.keys())
+        space = OrderedDict((x, -1) for x in self._map_number_to_node.keys())
         for idx, edge in enumerate(edges):
-            left = self._map_vertex_to_number[edge[0]]
-            right = self._map_vertex_to_number[edge[1]]
+            left = self._map_node_to_number[edge[0]]
+            right = self._map_node_to_number[edge[1]]
             if self.weighted:
                 weight = float(edge[2])
 
@@ -335,7 +343,7 @@ class lol_graph:
                 space[left] += 1
                 i = space[left]
             else:
-                i = index_list[left - vertices_amount] - last_index
+                i = index_list[left - nodes_amount] - last_index
                 space[left] = i
             neighbors_list[i] = right
             if self.weighted:
@@ -368,14 +376,14 @@ class lol_graph:
     # The swap can only be in the form of: from edge [a,b] to edge [a, c].
     def swap_edge(self, edge_to_delete, edge_to_add):
         if not self.directed or (self.directed and edge_to_delete[0] != edge_to_add[0]):
-            print("Error: swap_edge can only be only on directed graph and from the same vertex")
+            print("Error: swap_edge can only be only on directed graph and from the same node")
             return
         if not self.is_edge_between_nodes(edge_to_delete[0], edge_to_delete[1]):
             print("Error: edge_to_delete was not found")
             return
-        number = self._map_vertex_to_number[edge_to_add[0]]
-        to_number = self._map_vertex_to_number[edge_to_add[1]]
-        from_number = self._map_vertex_to_number[edge_to_delete[1]]
+        number = self._map_node_to_number[edge_to_add[0]]
+        to_number = self._map_node_to_number[edge_to_add[1]]
+        from_number = self._map_node_to_number[edge_to_delete[1]]
         start_index_of_source = self._index_list[number]
         end_index_of_source = self._index_list[number+1]
 
@@ -399,8 +407,12 @@ class lol_graph:
     # get memory usage of the lol object
     def get_memory(self):
         return sum([sys.getsizeof(var) for var in [self._index_list, self._neighbors_list, self._weights_list,
-                                                   self._map_vertex_to_number, self._map_number_to_vertex,
+                                                   self._map_node_to_number, self._map_number_to_node,
                                                    self.directed, self.weighted]])
+
+    def return_node_type(self, node, groups):
+        node_type = int(node[0])
+        return [1 if i == node_type else 0 for i in range(groups)]
 
 
 
@@ -416,12 +428,12 @@ if __name__ == '__main__':
     # print("index list", list_of_list_graph._index_list)
     # print("neighbors list", list_of_list_graph._neighbors_list)
     # print("weights list", list_of_list_graph._weights_list)
-    # print("map_vertex_to_number", list_of_list_graph._map_vertex_to_number)
-    # print("map_number_to_vertex", list_of_list_graph._map_number_to_vertex)
+    # print("map_node_to_number", list_of_list_graph._map_node_to_number)
+    # print("map_number_to_node", list_of_list_graph._map_number_to_node)
     # print("BACK "+ str(list_of_list_graph.convert_back()))
     # # print("graph.adj - ", list_of_list_graph.graph_adjacency())
     # print("number of edges", list_of_list_graph.number_of_edges())
-    # print("number of vertices", list_of_list_graph.number_of_vertices())
+    # print("number of nodes", list_of_list_graph.number_of_nodes())
     # print("sum_weight_from_node", list_of_list_graph.sum_weight_from_node("5a"))
     # print("sum_weight_to_node", list_of_list_graph.sum_weight_to_node("5a"))
     # print("all nodes to node", "8c", list_of_list_graph.all_nodes_directed_to_node("8c"))
