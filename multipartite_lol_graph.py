@@ -29,8 +29,8 @@ class Multipartite_Lol(lol_graph):
                 if header:
                     next(datareader, None)  # skip the headers
                 for edge in datareader:
-                    named_edge = [str(graphs_directions[i][0]) + edge[0],
-                                  str(graphs_directions[i][1]) + edge[1]]
+                    named_edge = [str(graphs_directions[i][0]) + "_" + edge[0],
+                                  str(graphs_directions[i][1]) + "_" + edge[1]]
                     if weighted:
                         named_edge.append(float(edge[2]))
                     graph.append(named_edge)
