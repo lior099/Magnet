@@ -125,27 +125,6 @@ class lol_graph:
         else:
             return default
 
-    # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
-    def convert_with_csv(self, files_name, graphs_directions, directed=False, weighted=False, header=True):
-        self._map_node_to_number = OrderedDict()
-        graph = []
-        for i in range(len(files_name)):
-            file = files_name[i]
-            with open(file, "r") as csvfile:
-                datareader = csv.reader(csvfile)
-                if header:
-                    next(datareader, None)  # skip the headers
-                for edge in datareader:
-                    named_edge = [str(graphs_directions[i][0]) + "_" + edge[0],
-                                  str(graphs_directions[i][1]) + "_" + edge[1]]
-                    if weighted:
-                        named_edge.append(float(edge[2]))
-                    graph.append(named_edge)
-                csvfile.close()
-        self.convert(graph, directed, weighted)
-
-
-
     # input: np array of edges, in the form of np array [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]]
     def convert(self, graph, directed=False, weighted=False):
         self.directed = directed
