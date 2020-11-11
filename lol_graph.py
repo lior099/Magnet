@@ -119,7 +119,7 @@ class lol_graph:
             neighbors_list, weights_list = self.neighbors(node1)
             x = self.binary_search(neighbors_list, node2)
             if x != -1:
-                return weights_list[x]
+                return {"weight": weights_list[x]}
             else:
                 raise ValueError("Note: The edge does not exist")
         else:
