@@ -8,8 +8,8 @@ import csv
 class Multipartite_Lol(lol_graph):
     def __init__(self, groups_number=0, index_list=[0], neighbors_list=[], weights_list=[], map_node_to_number=OrderedDict(),
                  map_number_to_node=OrderedDict(), directed=False, weighted=False):
-        super().__init__(index_list=[0], neighbors_list=[], weights_list=[], map_node_to_number=OrderedDict(),
-                         map_number_to_node=OrderedDict(), directed=False, weighted=False)
+        super().__init__(index_list=index_list, neighbors_list=neighbors_list, weights_list=weights_list, map_node_to_number=map_node_to_number,
+                         map_number_to_node=map_number_to_node, directed=directed, weighted=weighted)
         self.groups_number = groups_number
 
     # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
