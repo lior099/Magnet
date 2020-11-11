@@ -114,16 +114,16 @@ class lol_graph:
             return len(self._neighbors_list) / 2
         return len(self._neighbors_list)
 
-
-    def get_edge_data(self, node1, node2):
+    def get_edge_data(self, node1, node2, default={'weight': 1}):
         if self.weighted:
             neighbors_list, weights_list = self.neighbors(node1)
             x = self.binary_search(neighbors_list, node2)
             if x != -1:
                 return weights_list[x]
-            print("There is no edge between ", node1, " and ", node2)
+            else:
+                raise ValueError("Note: The edge does not exist")
         else:
-            print("Notice: The graph is not weighted")
+            return default
 
     # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
     def convert_with_csv(self, files_name, graphs_directions, directed=False, weighted=False, header=True):
