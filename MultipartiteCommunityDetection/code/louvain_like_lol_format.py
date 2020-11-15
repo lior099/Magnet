@@ -109,16 +109,16 @@ def induced_graph(partition, graph, weight, nodetype):
     for node1, node2, edge_weight in graph.edges(data=True):
         com1 = partition[node1]
         com2 = partition[node2]
-        edges
-        w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
-        ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
-    for node, data in graph.nodes(data=True):
+        w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 0)
+        edges.append([com1, com2, w_prec + edge_weight])
+    ret.convert(edges, directed=True, weighted=True)
+    for node, data in graph.nodes():
         com = partition[node]
         com_data = ret.nodes[com]
         if nodetype not in com_data:
-            com_data[nodetype] = graph.nodes[node][nodetype]
+            com_data[nodetype] = graph.return_node_type(node)
         else:
-            com_data[nodetype] = [exist + add for exist, add in zip(com_data[nodetype], graph.nodes[node][nodetype])]
+            com_data[nodetype] = [exist + add for exist, add in zip(com_data[nodetype], graph.return_node_type(node))]
     return ret
 
 
