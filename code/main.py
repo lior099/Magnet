@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     elif task_number == '3' and args.source:
         max_steps = 4
-        starting_point = '2a'
+        starting_point = '0_2'
         rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                             os.walk(rootDir) for file in filenames]
@@ -130,7 +130,8 @@ if __name__ == '__main__':
         #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_01.csv"))
         #     graph_file_names.append(
         #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_10.csv"))
-
+        
+        # the user should change
         from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
         # multipartite_graph = load_graph(graph_file_names)
         print(task3(max_steps, starting_point, graph_file_names, from_to_groups))
