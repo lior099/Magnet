@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3, load_graph
+from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3
 from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files, load_ground_truths, run_louvain, task2
 from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1
 import time
