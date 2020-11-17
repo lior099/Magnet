@@ -2,7 +2,8 @@ import argparse
 import os
 import sys
 from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3
-from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files, load_ground_truths, run_louvain, task2
+from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files, load_ground_truths, run_louvain, \
+    task2
 from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1
 import time
 
@@ -94,7 +95,7 @@ if __name__ == '__main__':
         first_stage_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
 
         if not os.path.exists(os.path.join("..", "BipartiteProbabilisticMatching", "results",
-                                                 directory_saving_name)):
+                                           directory_saving_name)):
             os.makedirs(os.path.join("..", "BipartiteProbabilisticMatching", "results",
                                      directory_saving_name))
 
@@ -124,13 +125,13 @@ if __name__ == '__main__':
         rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                             os.walk(rootDir) for file in filenames]
-        graph_file_names.sort() #optional
+        graph_file_names.sort()  # optional
         # for g in range(1, 4):
         #     graph_file_names.append(
         #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_01.csv"))
         #     graph_file_names.append(
         #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_10.csv"))
-        
+
         # the user should change
         from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
         # multipartite_graph = load_graph(graph_file_names)
