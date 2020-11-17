@@ -6,6 +6,7 @@ import os
 import pandas as pd
 
 from lol_graph import lol_graph
+from multipartite_lol_graph import Multipartite_Lol
 
 # The function calculates the probability to get from start to all nodes.
 # Input:
@@ -129,7 +130,7 @@ def bfs(edges_dict, starting_point, k):
 
 
 def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups):
-    list_of_list_graph = lol_graph()
+    list_of_list_graph = Multipartite_Lol()
     list_of_list_graph.convert_with_csv(graph_files_name, from_to_groups, directed=True, weighted=True)
 
     probs = iterate_by_layers(list_of_list_graph, limit_of_steps, starting_point)
