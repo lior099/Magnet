@@ -16,6 +16,9 @@ from multipartite_lol_graph import Multipartite_Lol
 # Output:
 #      probs - dictionary mapping between each node to a
 #              dictionary holding the probability to get to this node from starting_point.
+
+
+
 def iterate_by_layers(graph, k, starting_point):
     starting_group = starting_point[0]
     # edges_dict = dict(graph.adj)
