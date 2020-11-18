@@ -125,24 +125,6 @@ class lol_graph:
         if not self.directed:
             return len(self._neighbors_list) / 2
         return len(self._neighbors_list)
-    #
-    # # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
-    # def convert_with_csv(self, files_name, directed=False, weighted=False, header=True):
-    #     self._map_node_to_number = OrderedDict()
-    #     graph = []
-    #     for i in range(len(files_name)):
-    #         file = files_name[i]
-    #         with open(file, "r") as csvfile:
-    #             datareader = csv.reader(csvfile)
-    #             if header:
-    #                 next(datareader, None)  # skip the headers
-    #             for edge in datareader:
-    #                 named_edge = edge
-    #                 if weighted:
-    #                     named_edge.append(float(edge[2]))
-    #                 graph.append(named_edge)
-    #             csvfile.close()
-    #     self.convert(graph, directed, weighted)
 
     def get_edge_data(self, node1, node2, default=None):
         if self.weighted:
