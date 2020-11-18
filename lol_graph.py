@@ -7,13 +7,12 @@ import sys
 
 class lol_graph:
 
-    def __init__(self, index_list=[0], neighbors_list=[], weights_list=[], map_node_to_number=OrderedDict(),
-                 map_number_to_node=OrderedDict(), directed=False, weighted=False):
-        self._index_list = index_list
-        self._neighbors_list = neighbors_list
-        self._weights_list = weights_list
-        self._map_node_to_number = map_node_to_number
-        self._map_number_to_node = map_number_to_node
+    def __init__(self, directed=False, weighted=False):
+        self._index_list = [0]
+        self._neighbors_list = []
+        self._weights_list = []
+        self._map_node_to_number = OrderedDict()
+        self._map_number_to_node = OrderedDict()
         self.directed = directed
         self.weighted = weighted
 
@@ -32,8 +31,16 @@ class lol_graph:
         # return sum(1 for node in self._index_list if node is not None) - 1
 
     def copy(self):
-        return lol_graph(self._index_list.copy(), self._neighbors_list.copy(), self._weights_list.copy(),
-                         self._map_node_to_number.copy(), self._map_number_to_node.copy(), self.directed, self.weighted)
+        new_lol_graph = lol_graph()
+        new_lol_graph._index_list = self._index_list.copy()
+        new_lol_graph._neighbors_list = self._neighbors_list.copy()
+        new_lol_graph._weights_list = self._weights_list.copy()
+        new_lol_graph._map_node_to_number = self._map_node_to_number.copy()
+        new_lol_graph._map_number_to_node = self._map_number_to_node.copy()
+        new_lol_graph.directed = self.directed
+        new_lol_graph.weighted = self.weighted
+        return  new_lol_graph
+
     # outdegree
     def out_degree(self, node):
         if self.weighted:
@@ -69,6 +76,13 @@ class lol_graph:
         # If we reach here, then the element was not present
         return -1
 
+    def nodes_binary_search(self, arr, x):
+        num = self._map_node_to_number[x]
+        arr_num = [self._map_node_to_number[node] for node in arr]
+        num_found_index = self.binary_search(arr_num, num)
+        return num_found_index
+
+
     # indegree
     def in_degree(self, node):
         sum = 0
@@ -77,7 +91,7 @@ class lol_graph:
                 neighbors_list, weights_list = self.neighbors(node_from)
             else:
                 neighbors_list = self.neighbors(node_from)
-            x = self.binary_search(neighbors_list, node)
+            x = self.nodes_binary_search(neighbors_list, node)
             if x != -1:
                 if self.weighted:
                     sum += weights_list[x]
@@ -88,21 +102,19 @@ class lol_graph:
     def predecessors(self, node):
         nodes_list = []
         for node_from in self.nodes():
-            neighbors_list, weights_list = self.neighbors(node_from)
-            x = self.binary_search(neighbors_list, node)
-            if x != -1:
+            if self.is_edge_between_nodes(node_from, node):
                 nodes_list.append(node_from)
         return nodes_list
 
     def nodes(self):
-        return self._map_node_to_number.keys()
+        return list(self._map_node_to_number.keys())
 
     def edges(self):
         return self.convert_back()
 
     def is_edge_between_nodes(self, node1, node2):
         neighbors_list, weights_list = self.neighbors(node1)
-        x = self.binary_search(neighbors_list, node2)
+        x = self.nodes_binary_search(neighbors_list, node2)
         return x != -1
 
     def size(self):
@@ -113,17 +125,38 @@ class lol_graph:
         if not self.directed:
             return len(self._neighbors_list) / 2
         return len(self._neighbors_list)
+    #
+    # # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
+    # def convert_with_csv(self, files_name, directed=False, weighted=False, header=True):
+    #     self._map_node_to_number = OrderedDict()
+    #     graph = []
+    #     for i in range(len(files_name)):
+    #         file = files_name[i]
+    #         with open(file, "r") as csvfile:
+    #             datareader = csv.reader(csvfile)
+    #             if header:
+    #                 next(datareader, None)  # skip the headers
+    #             for edge in datareader:
+    #                 named_edge = edge
+    #                 if weighted:
+    #                     named_edge.append(float(edge[2]))
+    #                 graph.append(named_edge)
+    #             csvfile.close()
+    #     self.convert(graph, directed, weighted)
 
-    def get_edge_data(self, node1, node2, default={'weight': 1}):
+    def get_edge_data(self, node1, node2, default=None):
         if self.weighted:
             neighbors_list, weights_list = self.neighbors(node1)
-            x = self.binary_search(neighbors_list, node2)
+            x = self.nodes_binary_search(neighbors_list, node2)
             if x != -1:
                 return {"weight": weights_list[x]}
             else:
-                raise ValueError("Note: The edge does not exist")
+                if default is not None:
+                    return default
+                else:
+                    return {'weight': 0}
         else:
-            return default
+            return {'weight': 1}
 
     # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
     def convert_with_csv(self, files_name, directed=False, weighted=False, header=True):
@@ -142,7 +175,7 @@ class lol_graph:
                     graph.append(named_edge)
                 csvfile.close()
         self.convert(graph, directed, weighted)
-        
+
     # input: np array of edges, in the form of np array [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]]
     def convert(self, graph, directed=False, weighted=False):
         self.directed = directed
@@ -243,7 +276,6 @@ class lol_graph:
         else:
             return sorted(neighbors_list), weights_list
 
-
     # get neighbors of specific node n
     def neighbors(self, node):
         number = self._map_node_to_number[node]
@@ -273,7 +305,9 @@ class lol_graph:
                 for neighbor, weight in zip(neighbors_list, weights_list):
                     graph_adjacency_dict[node][neighbor] = {'weight': weight}
             else:
-                graph_adjacency_dict[node] = self.neighbors(node)
+                neighbors_list = self.neighbors(node)
+                for neighbor in neighbors_list:
+                    graph_adjacency_dict[node][neighbor] = {'weight': 1}
         return graph_adjacency_dict
 
     # Add new edges to the graph, but with limitations:
@@ -407,16 +441,10 @@ class lol_graph:
                                                    self._map_node_to_number, self._map_number_to_node,
                                                    self.directed, self.weighted]])
 
-    def return_node_type(self, node, groups):
-        node_type = int(node[0])
-        return [1 if i == node_type else 0 for i in range(groups)]
-
-
-
 
 if __name__ == '__main__':
     list_of_list_graph = lol_graph()
-    rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", "toy_network_1")
+    rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", "toy_network_1")
     graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                               os.walk(rootDir) for file in filenames]
     graph_filenames.sort()
@@ -436,3 +464,4 @@ if __name__ == '__main__':
     # print("all nodes to node", "8c", list_of_list_graph.all_nodes_directed_to_node("8c"))
     # print("edge list:", list_of_list_graph.get_edge_list())
     # print(list_of_list_graph.get_weight_of_edge("1a", "1b"))
+    print("nodes", list_of_list_graph.nodes())
