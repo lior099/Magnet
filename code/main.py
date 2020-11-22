@@ -2,8 +2,7 @@ import argparse
 import os
 import sys
 from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3
-from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files, load_ground_truths, run_louvain, \
-    task2
+from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files, load_ground_truths, run_louvain, task2
 from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1
 import time
 
@@ -83,58 +82,45 @@ if __name__ == '__main__':
     source_dir = args.source
     destination_dir = args.destination
     # run_yoram_networks()
-    if task_number == '1' and args.source and args.destination:
-        directory_saving_name = args.destination
+    if task_number == '1' and source_dir and destination_dir:
         rootDir = os.path.join("...", "BipartiteProbabilisticMatching", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                             os.walk(rootDir) for file in filenames]
 
         first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
-                                                 directory_saving_name,
+                                                 destination_dir,
                                                  f"yoram_network_1_graph_{g}.csv") for g in range(1, 4)]
         first_stage_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
 
         if not os.path.exists(os.path.join("..", "BipartiteProbabilisticMatching", "results",
-                                           directory_saving_name)):
+                                                 destination_dir)):
             os.makedirs(os.path.join("..", "BipartiteProbabilisticMatching", "results",
-                                     directory_saving_name))
+                                     destination_dir))
 
         if len(graph_file_names) == 0:
             print("No file were found!")
         else:
             task1(graph_file_names, first_stage_saving_paths, first_stage_params)
 
-    elif task_number == '2' and args.source and args.destination:
-        second_saving_path = args.destination
-        # second_graph_ids = []
+    elif task_number == '2' and source_dir and destination_dir:
         second_graph_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
-        # for i in range(1, 4):
-        #     second_graph_ids.append((0, i))
-        #     second_graph_ids.append((i, 0))
 
         rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", source_dir)
         second_graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                                   os.walk(rootDir) for file in filenames]
         gr = load_graph_from_files(second_graph_filenames, second_graph_ids, has_title=True, cutoff=0.0)
 
-        task2(gr, second_saving_path, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+        task2(gr, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
 
-    elif task_number == '3' and args.source:
+    elif task_number == '3' and source_dir and destination_dir:
         max_steps = 4
         starting_point = '0_2'
         rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                             os.walk(rootDir) for file in filenames]
-        graph_file_names.sort()  # optional
-        # for g in range(1, 4):
-        #     graph_file_names.append(
-        #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_01.csv"))
-        #     graph_file_names.append(
-        #         os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir, source_dir + f"_graph_{g}_10.csv"))
+        graph_file_names.sort() #optional
 
-        # the user should change
         from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
-        # multipartite_graph = load_graph(graph_file_names)
-        print(task3(max_steps, starting_point, graph_file_names, from_to_groups))
+        print(task3(max_steps, starting_point, graph_file_names, from_to_groups, destination_dir))
     else:
         print("wrong/missing arguments...")
