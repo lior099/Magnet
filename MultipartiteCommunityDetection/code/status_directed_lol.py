@@ -31,13 +31,13 @@ class Status_Lol_Format(object):
         self.g_in_degrees = {}
         self.g_out_degrees = {}
         self.internals = {}
-        self.total_weight = graph.size(weight=weight)
+        self.total_weight = graph.size()
         if part is None:
             for node in graph.nodes():
                 self.node2com[node] = count
-                in_deg = round(float(graph.in_degree(node, weight=weight)), 5)
-                out_deg = round(float(graph.out_degree(node, weight=weight)), 5)
-                com_type = graph.return_node_type(node, groups=3)
+                in_deg = round(float(graph.in_degree(node)), 5)
+                out_deg = round(float(graph.out_degree(node)), 5)
+                com_type = graph.return_node_type(node)
                 if any([in_deg < 0, out_deg < 0]):
                     raise ValueError(f"Bad node degree for node ({node})")
                 self.com_nodes[count] = com_type
