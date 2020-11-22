@@ -4,9 +4,10 @@ from queue import Queue
 import copy
 import os
 import pandas as pd
+import csv
+from multipartite_lol_graph import Multipartite_Lol
 
 from lol_graph import lol_graph
-from multipartite_lol_graph import Multipartite_Lol
 
 # The function calculates the probability to get from start to all nodes.
 # Input:
@@ -16,9 +17,6 @@ from multipartite_lol_graph import Multipartite_Lol
 # Output:
 #      probs - dictionary mapping between each node to a
 #              dictionary holding the probability to get to this node from starting_point.
-
-
-
 def iterate_by_layers(graph, k, starting_point):
     starting_group = starting_point[0]
     # edges_dict = dict(graph.adj)
@@ -131,11 +129,20 @@ def bfs(edges_dict, starting_point, k):
     layers_dict = {i: [neighbour for neighbour, dis in distance_from_start.items() if dis == i] for i in range(k+1)}
     return distance_from_start, layers_dict
 
+def probs_to_csv(probs, filename, start):
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", f"{filename}_from node_{start}.csv"), "w") as f:
+        w = csv.writer(f)
+        w.writerow(["Source","Target","Probability"])
+        for group, group_probs in probs.items():
+            for target, probability in group_probs.items():
+                w.writerow([start, target, probability])
 
-def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups):
+
+def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups, destination):
     list_of_list_graph = Multipartite_Lol()
     list_of_list_graph.convert_with_csv(graph_files_name, from_to_groups, directed=True, weighted=True)
 
     probs = iterate_by_layers(list_of_list_graph, limit_of_steps, starting_point)
     passway_probability = normalize_probs_matrix(probs)
+    probs_to_csv(passway_probability, destination, starting_point)
     return passway_probability
