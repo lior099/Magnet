@@ -11,7 +11,7 @@ class Multipartite_Lol(lol_graph):
         self.groups_number = groups_number
         self.nodes_type_dict = {}
 
-    def convert_with_csv(self, files_name, graphs_directions, directed=False, weighted=False, header=True):
+    def convert_with_csv(self, files_name, graphs_directions=None, directed=False, weighted=False, header=True):
         s = set()
         for t in graphs_directions:
             s.add(t[0])
