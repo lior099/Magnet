@@ -2,10 +2,10 @@ import argparse
 import os
 import sys
 from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3, probs_to_csv
-from MultipartiteCommunityDetection.code.run_louvain_lol import run_louvain, task2
-# from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
+
 from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1
 import time
+import cProfile
 from memory_profiler import memory_usage, profile
 
 from multipartite_lol_graph import Multipartite_Lol
@@ -75,7 +75,7 @@ def run_yoram_networks():
                            second_saving_path=f"yoram_network_{network}_communities", assess=False, draw=False,
                            community_ground_truth=None)
 
-@profile
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", "-T")
@@ -107,16 +107,27 @@ def main():
             task1(graph_file_names, first_stage_saving_paths, first_stage_params)
 
     elif task_number == '2' and source_dir and destination_dir:
+        lol = True
+
         from_to_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
 
         rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", source_dir)
         second_graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                                   os.walk(rootDir) for file in filenames]
-        # gr = load_graph_from_files(second_graph_filenames, from_to_ids, has_title=True, cutoff=0.0)
-        list_of_list_graph = Multipartite_Lol()
-        list_of_list_graph.convert_with_csv(second_graph_filenames, from_to_ids, directed=True, weighted=True)
-        list_of_list_graph.set_nodes_type_dict()
-        task2(list_of_list_graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+
+        if lol:
+            from MultipartiteCommunityDetection.code.run_louvain_lol import run_louvain, task2
+            graph = Multipartite_Lol()
+            graph.convert_with_csv(second_graph_filenames, from_to_ids, directed=True, weighted=True)
+            graph.set_nodes_type_dict()
+        else:
+            from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
+            graph = load_graph_from_files(second_graph_filenames, from_to_ids, has_title=True, cutoff=0.0)
+        t = time.time()
+        task2(graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+
+        end = time.time()
+        print(end-t)
 
     elif task_number == '3' and source_dir and destination_dir:
         max_steps = 4
@@ -134,4 +145,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    cProfile.run('main()')
