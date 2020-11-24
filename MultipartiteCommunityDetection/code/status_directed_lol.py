@@ -1,4 +1,4 @@
-class Status_Lol_Format(object):
+class Status_Lol(object):
     def __init__(self):
         self.node2com = {}       # Dictionary {node: community index for every node in the graph}
         self.com_nodes = {}      # Dictionary {community: [count of nodes of each type in this community]}
@@ -12,7 +12,7 @@ class Status_Lol_Format(object):
 
     def copy(self):
         """Perform a deep copy of status"""
-        new_status = Status_Lol_Format()
+        new_status = Status_Lol()
         new_status.node2com = self.node2com.copy()
         new_status.com_nodes = self.com_nodes.copy()
         new_status.internals = self.internals.copy()
