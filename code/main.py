@@ -1,10 +1,14 @@
 import argparse
 import os
 import sys
-from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3
-from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files, load_ground_truths, run_louvain, task2
+from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3, probs_to_csv
+from MultipartiteCommunityDetection.code.run_louvain_lol import run_louvain, task2
+# from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
 from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1
 import time
+from memory_profiler import memory_usage, profile
+
+from multipartite_lol_graph import Multipartite_Lol
 
 
 def first_second_stage(graph_filenames, graph_ids, algorithm, first_stage_params, first_saving_paths, cutoff,
@@ -52,7 +56,7 @@ def first_second_stage(graph_filenames, graph_ids, algorithm, first_stage_params
 
 
 def run_yoram_networks():
-    for network in range(2, 5):
+    for network in range(2, 7):
         print(network)
         graph_files = [os.path.join("..", "BipartiteProbabilisticMatching", "data",
                                     f"Obs_Pair_K_Network_{network}_Graph_{g}.csv") for g in range(1, 4)]
@@ -71,8 +75,8 @@ def run_yoram_networks():
                            second_saving_path=f"yoram_network_{network}_communities", assess=False, draw=False,
                            community_ground_truth=None)
 
-
-if __name__ == '__main__':
+@profile
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", "-T")
     parser.add_argument("--source", "-S")
@@ -83,7 +87,7 @@ if __name__ == '__main__':
     destination_dir = args.destination
     # run_yoram_networks()
     if task_number == '1' and source_dir and destination_dir:
-        rootDir = os.path.join("...", "BipartiteProbabilisticMatching", "data", source_dir)
+        rootDir = os.path.join("..", "BipartiteProbabilisticMatching", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                             os.walk(rootDir) for file in filenames]
 
@@ -93,7 +97,7 @@ if __name__ == '__main__':
         first_stage_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
 
         if not os.path.exists(os.path.join("..", "BipartiteProbabilisticMatching", "results",
-                                                 destination_dir)):
+                                           destination_dir)):
             os.makedirs(os.path.join("..", "BipartiteProbabilisticMatching", "results",
                                      destination_dir))
 
@@ -103,14 +107,16 @@ if __name__ == '__main__':
             task1(graph_file_names, first_stage_saving_paths, first_stage_params)
 
     elif task_number == '2' and source_dir and destination_dir:
-        second_graph_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
+        from_to_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
 
         rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", source_dir)
         second_graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                                   os.walk(rootDir) for file in filenames]
-        gr = load_graph_from_files(second_graph_filenames, second_graph_ids, has_title=True, cutoff=0.0)
-
-        task2(gr, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+        # gr = load_graph_from_files(second_graph_filenames, from_to_ids, has_title=True, cutoff=0.0)
+        list_of_list_graph = Multipartite_Lol()
+        list_of_list_graph.convert_with_csv(second_graph_filenames, from_to_ids, directed=True, weighted=True)
+        list_of_list_graph.set_nodes_type_dict()
+        task2(list_of_list_graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
 
     elif task_number == '3' and source_dir and destination_dir:
         max_steps = 4
@@ -118,9 +124,14 @@ if __name__ == '__main__':
         rootDir = os.path.join("..", "PathwayProbabilitiesCalculation", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                             os.walk(rootDir) for file in filenames]
-        graph_file_names.sort() #optional
+        graph_file_names.sort()  # optional
 
         from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
-        print(task3(max_steps, starting_point, graph_file_names, from_to_groups, destination_dir))
+        passway_probability = task3(max_steps, starting_point, graph_file_names, from_to_groups, destination_dir)
+        probs_to_csv(passway_probability, destination_dir, starting_point)
     else:
         print("wrong/missing arguments...")
+
+
+if __name__ == '__main__':
+    main()
