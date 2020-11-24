@@ -77,11 +77,13 @@ class lol_graph:
         return -1
 
     def nodes_binary_search(self, arr, x):
-        num = self._map_node_to_number[x]
-        arr_num = [self._map_node_to_number[node] for node in arr]
-        num_found_index = self.binary_search(arr_num, num)
-        return num_found_index
-
+        # num = self._map_node_to_number[x]
+        # arr_num = [self._map_node_to_number[node] for node in arr]
+        # num_found_index = self.binary_search(arr_num, num)
+        # return num_found_index
+        if x in arr:
+            return arr.index(x)
+        return -1
 
     # indegree
     def in_degree(self, node):
@@ -113,9 +115,14 @@ class lol_graph:
         return self.convert_back()
 
     def is_edge_between_nodes(self, node1, node2):
-        neighbors_list, weights_list = self.neighbors(node1)
-        x = self.nodes_binary_search(neighbors_list, node2)
-        return x != -1
+        number = self._map_node_to_number[node1]
+        idx = self._index_list[number]
+        idx_end = self._index_list[number + 1]
+        return self._map_node_to_number[node2] in self._neighbors_list[idx: idx_end]
+        # for neighbor in self._neighbors_list[idx: idx_end]:
+        #     if node2 == self._map_number_to_node[neighbor]:
+        #         return True
+        # return False
 
     def size(self):
         if self.weighted and not self.directed:
@@ -262,13 +269,12 @@ class lol_graph:
     def neighbors(self, node):
         number = self._map_node_to_number[node]
         idx = self._index_list[number]
-        neighbors_list = []
-        weights_list = []
-        while idx < self._index_list[number + 1]:
-            neighbors_list.append(self._map_number_to_node[self._neighbors_list[idx]])
-            if self.weighted:
-                weights_list.append(self._weights_list[idx])
-            idx += 1
+        idx_end = self._index_list[number+1]
+        neighbors_list = [0] * (idx_end-idx)
+        if self.weighted:
+            weights_list = self._weights_list[idx: idx_end]
+        for i, neighbor in enumerate(self._neighbors_list[idx: idx_end]):
+            neighbors_list[i] = self._map_number_to_node[neighbor]
         if self.weighted:
             return neighbors_list, weights_list
         else:
