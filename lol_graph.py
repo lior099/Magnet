@@ -5,9 +5,9 @@ import csv
 import sys
 
 
-class lol_graph:
+class LolGraph:
 
-    def __init__(self, directed=False, weighted=False):
+    def __init__(self, directed=True, weighted=True):
         self._index_list = [0]
         self._neighbors_list = []
         self._weights_list = []
@@ -24,14 +24,12 @@ class lol_graph:
 
     def number_of_edges(self):
         return len(self._neighbors_list)
-        # return sum(1 for neighbor in self._neighbors_list if neighbor is not None)
 
     def number_of_nodes(self):
         return len(self._index_list) - 1
-        # return sum(1 for node in self._index_list if node is not None) - 1
 
     def copy(self):
-        new_lol_graph = lol_graph()
+        new_lol_graph = LolGraph()
         new_lol_graph._index_list = self._index_list.copy()
         new_lol_graph._neighbors_list = self._neighbors_list.copy()
         new_lol_graph._weights_list = self._weights_list.copy()
@@ -43,7 +41,7 @@ class lol_graph:
 
     # outdegree
     def out_degree(self, node):
-        if self.weighted:
+        if self.is_weighted():
             neighbors_list, weights_list = self.neighbors(node)
             return sum(weights_list)
         else:
@@ -148,7 +146,7 @@ class lol_graph:
             return {'weight': 1}
 
     # input: csv file containing edges list, in the form of [[5,1],[2,3],[5,3],[4,5]]
-    def convert_with_csv(self, files_name, directed=False, weighted=False, header=True):
+    def convert_with_csv(self, files_name, header=True):
         self._map_node_to_number = OrderedDict()
         graph = []
         for i in range(len(files_name)):
@@ -159,16 +157,14 @@ class lol_graph:
                     next(datareader, None)  # skip the headers
                 for edge in datareader:
                     named_edge = edge
-                    if weighted:
+                    if self.is_weighted():
                         named_edge.append(float(edge[2]))
                     graph.append(named_edge)
                 csvfile.close()
-        self.convert(graph, directed, weighted)
+        self.convert(graph)
 
     # input: np array of edges, in the form of np array [[5,1,0.1],[2,3,3],[5,3,0.2],[4,5,9]]
-    def convert(self, graph, directed=False, weighted=False):
-        self.directed = directed
-        self.weighted = weighted
+    def convert(self, graph):
         free = 0
         '''create dictionary to self._map_node_to_number from edges to our new numbering'''
 
@@ -187,7 +183,7 @@ class lol_graph:
         '''starting to create the index list. Unordered is important'''
         for idx, edge in enumerate(graph):
             d[self._map_node_to_number[edge[0]]] = d.get(self._map_node_to_number[edge[0]], 0) + 1
-            if not self.directed:
+            if not self.is_directed():
                 d[self._map_node_to_number[edge[1]]] = d.get(self._map_node_to_number[edge[1]], 0) + 1
             elif self._map_node_to_number[edge[1]] not in d.keys():
                 d[self._map_node_to_number[edge[1]]] = 0
@@ -197,18 +193,20 @@ class lol_graph:
             self._index_list.append(self._index_list[j - 1] + d.get(j - 1, 0))
 
         '''create the second list'''
-        if self.directed:
+        if self.is_directed():
             self._neighbors_list = [-1] * len(graph)
+            if self.is_weighted():
+                self._weights_list = [0] * len(graph)
         else:
             self._neighbors_list = [-1] * len(graph) * 2
-        if self.weighted:
-            self._weights_list = [0] * len(graph)
+            if self.weighted:
+                self._weights_list = [0] * len(graph) * 2
 
         space = OrderedDict((x, -1) for x in self._map_number_to_node.keys())
         for idx, edge in enumerate(graph):
             left = self._map_node_to_number[edge[0]]
             right = self._map_node_to_number[edge[1]]
-            if self.weighted:
+            if self.is_weighted():
                 weight = float(edge[2])
 
             if space[left] != -1:
@@ -221,7 +219,7 @@ class lol_graph:
             if self.weighted:
                 self._weights_list[i] = weight
 
-            if not self.directed:
+            if not self.is_directed():
                 if space[right] != -1:
                     space[right] += 1
                     i = space[right]
@@ -229,7 +227,7 @@ class lol_graph:
                     i = self._index_list[right]
                     space[right] = i
                 self._neighbors_list[i] = left
-                if self.weighted:
+                if self.is_weighted():
                     self._weights_list[i] = weight
         self._neighbors_list, self._weights_list = self.sort_all(index_list=self._index_list,
                                                                  neighbors_list=self._neighbors_list,
@@ -271,11 +269,11 @@ class lol_graph:
         idx = self._index_list[number]
         idx_end = self._index_list[number+1]
         neighbors_list = [0] * (idx_end-idx)
-        if self.weighted:
+        if self.is_weighted():
             weights_list = self._weights_list[idx: idx_end]
         for i, neighbor in enumerate(self._neighbors_list[idx: idx_end]):
             neighbors_list[i] = self._map_number_to_node[neighbor]
-        if self.weighted:
+        if self.is_weighted():
             return neighbors_list, weights_list
         else:
             return neighbors_list
@@ -288,7 +286,7 @@ class lol_graph:
             if node not in graph_adjacency_dict.keys():
                 graph_adjacency_dict[node] = dict()
 
-            if self.weighted:
+            if self.is_weighted():
                 neighbors_list, weights_list = self.neighbors(node)
                 for neighbor, weight in zip(neighbors_list, weights_list):
                     graph_adjacency_dict[node][neighbor] = {'weight': weight}
@@ -344,18 +342,18 @@ class lol_graph:
             index_list.append(index_list[j - 1] + d.get(nodes_amount + j - 1, 0))
 
         '''create the second list'''
-        if self.directed:
+        if self.is_directed():
             neighbors_list = [-1] * len(edges)
         else:
             neighbors_list = [-1] * len(edges) * 2
-        if self.weighted:
+        if self.is_weighted():
             weights_list = [0] * len(edges)
 
         space = OrderedDict((x, -1) for x in self._map_number_to_node.keys())
         for idx, edge in enumerate(edges):
             left = self._map_node_to_number[edge[0]]
             right = self._map_node_to_number[edge[1]]
-            if self.weighted:
+            if self.is_weighted():
                 weight = float(edge[2])
 
             if space[left] != -1:
@@ -365,10 +363,10 @@ class lol_graph:
                 i = index_list[left - nodes_amount] - last_index
                 space[left] = i
             neighbors_list[i] = right
-            if self.weighted:
+            if self.is_weighted():
                 weights_list[i] = weight
 
-            if not self.directed:
+            if not self.is_directed():
                 if space[right] != -1:
                     space[right] += 1
                     i = space[right]
@@ -376,7 +374,7 @@ class lol_graph:
                     i = index_list[right - len(self._index_list) - 1]
                     space[right] = i
                 neighbors_list[i] = left
-                if self.weighted:
+                if self.is_weighted():
                     weights_list[i] = weight
 
         """sort the neighbors"""
@@ -410,7 +408,7 @@ class lol_graph:
         neighbor_index = self.binary_search(neighbors_list, from_number)
         neighbors_list[neighbor_index] = to_number
 
-        if self.weighted:
+        if self.is_weighted():
             weights_list = self._weights_list[start_index_of_source: end_index_of_source]
             weights_list[neighbor_index] = edge_to_add[2]
             neighbor_index, weights_list = self.sort_neighbors(neighbors_list, weights_list)
@@ -418,7 +416,6 @@ class lol_graph:
             # index_of_replacement = start_index_of_source + neighbor_index
             # neighbors_list[neighbor_index] = to_number
             # weights_list[neighbor_index] = edge_to_add[2]
-
         else:
             neighbor_index, weights_list = self.sort_neighbors(neighbors_list)
         self._neighbors_list[start_index_of_source: end_index_of_source] = neighbor_index
@@ -431,13 +428,13 @@ class lol_graph:
 
 
 if __name__ == '__main__':
-    list_of_list_graph = lol_graph()
+    list_of_list_graph = LolGraphUndirected(directed=False, weighted=True)
     rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", "toy_network_1")
     graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
                               os.walk(rootDir) for file in filenames]
     graph_filenames.sort()
-    list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
-    # list_of_list_graph.convert([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45]],  True, True)
+    # list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
+    list_of_list_graph.convert([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45], [5,2,20]],  True, True)
     # print("index list", list_of_list_graph._index_list)
     # print("neighbors list", list_of_list_graph._neighbors_list)
     # print("weights list", list_of_list_graph._weights_list)
