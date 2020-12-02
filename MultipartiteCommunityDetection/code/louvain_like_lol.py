@@ -1,9 +1,6 @@
 import numpy as np
-import networkx as nx
-
 from MultipartiteCommunityDetection.code.status_directed_lol import Status_Lol
-from lol_graph import lol_graph
-from multipartite_lol_graph import Multipartite_Lol
+from multipartite_lol_graph import MultipartiteLol
 
 __MIN = 0.0000001
 
@@ -87,7 +84,6 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
     current_graph = induced_graph(partition, current_graph, weight, nodetype)
     status.init(current_graph, weight, nodetype)
 
-
     while True:
         __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
         new_mod = __modularity(status, resolution, beta_penalty)
@@ -104,7 +100,7 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
 def induced_graph(partition, graph, weight, nodetype):
     """Compute the graph induced by the previous partition - two nodes from the same community will be represented by
     the same node in the resulting graph"""
-    ret = Multipartite_Lol(directed=True, weighted=True)
+    ret = MultipartiteLol(weighted=True)
     # ret.add_nodes_from(partition.values())
     edges = {}
     for node1, node2, edge_weight in graph.edges():
@@ -112,7 +108,7 @@ def induced_graph(partition, graph, weight, nodetype):
         com2 = partition[node2]
         edges[(com1, com2)] = edges.get((com1, com2), 0) + edge_weight
     edges_list = [[node1, node2, edges[(node1, node2)]] for node1, node2 in edges.keys()]
-    ret.convert(edges_list, directed=True, weighted=True)
+    ret.convert(edges_list)
     ret.initialize_nodes_type_dict()
     for node, data in graph.nodes_type_dict.items():
         com = partition[node]
@@ -147,7 +143,7 @@ def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
     modified = True
     cur_mod = __modularity(status, resolution, beta_penalty)
     new_mod = cur_mod
-
+    np.random.seed(42)
     while modified:
         cur_mod = new_mod
         modified = False
@@ -195,20 +191,19 @@ def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
 def __neighcom(node, graph, status, weight_key):
     """Compute the communities in the neighborhood of node in the graph given with the decomposition node2com"""
     weights_out = {}
-    # for neighbor, edge_weight in graph.neighbors2(node).items():
     neighbors_list, weights_list = graph.neighbors(node)
     for neighbor, edge_weight in zip(neighbors_list, weights_list):
         if neighbor != node:
             out_com = status.node2com[neighbor]
             weights_out[out_com] = weights_out.get(out_com, 0) + edge_weight
     weights_in = {}
-    for neighbor in graph.predecessors(node):
+    x = graph.predecessors(node)
+    for neighbor in x:
         if neighbor != node:
             edge_weight = graph.get_edge_data(neighbor, node).get(weight_key, 1)
             in_com = status.node2com[neighbor]
             weights_in[in_com] = weights_out.get(in_com, 0) + edge_weight
     return weights_in, weights_out
-
 
 def __remove(node, com, weight, node_type, status):
     """Remove node from community com and modify status"""
