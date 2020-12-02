@@ -2,7 +2,7 @@ class Status_Lol(object):
     def __init__(self):
         self.node2com = {}       # Dictionary {node: community index for every node in the graph}
         self.com_nodes = {}      # Dictionary {community: [count of nodes of each type in this community]}
-        self.total_weight = 0    # Sum of edge weights over all edges (including loops)
+        self.total_weight = 0.0    # Sum of edge weights over all edges (including loops)
         self.in_degrees = {}     # Dictionary {community: sum of in-degrees of all nodes in this community}
         self.out_degrees = {}    # Dictionary {community: sum of out-degrees of all nodes in this community}
         self.g_in_degrees = {}   # Dictionary {node: in-degree of a node for every node in the graph}
@@ -24,6 +24,7 @@ class Status_Lol(object):
 
     def init(self, graph, weight, nodetype, part=None):
         """Initialize the status of a graph with every node in one community"""
+        round_num = 8
         count = 0
         self.node2com = {}
         self.in_degrees = {}
@@ -31,12 +32,12 @@ class Status_Lol(object):
         self.g_in_degrees = {}
         self.g_out_degrees = {}
         self.internals = {}
-        self.total_weight = graph.size()
+        self.total_weight = round(graph.size(), round_num)
         if part is None:
             for node in graph.nodes():
                 self.node2com[node] = count
-                in_deg = round(float(graph.in_degree(node)), 5)
-                out_deg = round(float(graph.out_degree(node)), 5)
+                in_deg = round(float(graph.in_degree(node)), round_num)
+                out_deg = round(float(graph.out_degree(node)),round_num)
                 com_type = graph.return_node_type(node)
                 if any([in_deg < 0, out_deg < 0]):
                     raise ValueError(f"Bad node degree for node ({node})")
@@ -45,23 +46,23 @@ class Status_Lol(object):
                 self.out_degrees[count] = out_deg
                 self.g_in_degrees[node] = in_deg
                 self.g_out_degrees[node] = out_deg
-                edge_data = graph.get_edge_data(node, node, default={weight: 0})
-                self.loops[node] = float(edge_data.get(weight, 1))
+                edge_data = graph.get_edge_data(node, node, default={weight: 0.0})
+                self.loops[node] = round(float(edge_data.get(weight, 1)), round_num)
                 self.internals[count] = self.loops[node]
                 count += 1
         else:
             for node in graph.nodes():
                 com = part[node]
                 self.node2com[node] = com
-                in_deg = float(graph.in_degree(node))
-                out_deg = float(graph.in_degree(node))
-                com_type = graph.return_node_type(node, groups=3)
+                in_deg = round(float(graph.in_degree(node)), round_num)
+                out_deg = round(float(graph.in_degree(node)), round_num)
+                com_type = graph.return_node_type(node)
                 if com not in self.com_nodes:
                     self.com_nodes[com] = com_type
                 else:
                     self.com_nodes[com] = [exist + add for exist, add in zip(self.com_nodes[com], com_type)]
-                self.in_degrees[com] = self.in_degrees.get(com, 0) + in_deg
-                self.out_degrees[com] = self.out_degrees.get(com, 0) + out_deg
+                self.in_degrees[com] = self.in_degrees.get(com, 0.0) + in_deg
+                self.out_degrees[com] = self.out_degrees.get(com, 0.0) + out_deg
                 self.g_in_degrees[node] = in_deg
                 self.g_out_degrees[node] = out_deg
                 inc = 0.
@@ -70,5 +71,5 @@ class Status_Lol(object):
                     if edge_weight <= 0:
                         raise ValueError(f"Bad edge weight ({edge_weight})")
                     if part[neighbor] == com:
-                        inc += float(edge_weight)
-                self.internals[com] = self.internals.get(com, 0) + inc
+                        inc += round(float(edge_weight), round_num)
+                self.internals[com] = round(self.internals.get(com, 0.0) + inc, round_num)
