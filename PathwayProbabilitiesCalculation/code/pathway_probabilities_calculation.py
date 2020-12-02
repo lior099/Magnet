@@ -1,13 +1,8 @@
-import time
-import networkx as nx
 from queue import Queue
 import copy
 import os
-import pandas as pd
-import csv
-from multipartite_lol_graph import Multipartite_Lol
-
-from lol_graph import lol_graph
+from multipartite_lol_graph import MultipartiteLol
+from lol_graph import *
 
 # The function calculates the probability to get from start to all nodes.
 # Input:
@@ -129,6 +124,7 @@ def bfs(edges_dict, starting_point, k):
     layers_dict = {i: [neighbour for neighbour, dis in distance_from_start.items() if dis == i] for i in range(k+1)}
     return distance_from_start, layers_dict
 
+
 def probs_to_csv(probs, filename, start):
     with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", f"{filename}_from node_{start}.csv"), "w") as f:
         w = csv.writer(f)
@@ -139,8 +135,8 @@ def probs_to_csv(probs, filename, start):
 
 
 def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups, destination):
-    list_of_list_graph = Multipartite_Lol()
-    list_of_list_graph.convert_with_csv(graph_files_name, from_to_groups, directed=True, weighted=True)
+    list_of_list_graph = MultipartiteLol()
+    list_of_list_graph.convert_with_csv(graph_files_name, from_to_groups)
 
     probs = iterate_by_layers(list_of_list_graph, limit_of_steps, starting_point)
     passway_probability = normalize_probs_matrix(probs)
