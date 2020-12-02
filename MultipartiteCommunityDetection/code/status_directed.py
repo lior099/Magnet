@@ -24,6 +24,7 @@ class Status(object):
 
     def init(self, graph, weight, nodetype, part=None):
         """Initialize the status of a graph with every node in one community"""
+        round_num = 8
         count = 0
         self.node2com = {}
         self.in_degrees = {}
@@ -31,12 +32,12 @@ class Status(object):
         self.g_in_degrees = {}
         self.g_out_degrees = {}
         self.internals = {}
-        self.total_weight = graph.size(weight=weight)
+        self.total_weight = round(graph.size(weight=weight), round_num)
         if part is None:
             for node in graph.nodes():
                 self.node2com[node] = count
-                in_deg = float(graph.in_degree(node, weight=weight))
-                out_deg = float(graph.out_degree(node, weight=weight))
+                in_deg = round(float(graph.in_degree(node, weight=weight)), round_num)
+                out_deg = round(float(graph.out_degree(node, weight=weight)), round_num)
                 com_type = graph.nodes[node][nodetype]
                 if any([in_deg < 0, out_deg < 0]):
                     raise ValueError(f"Bad node degree for node ({node})")
@@ -46,15 +47,15 @@ class Status(object):
                 self.g_in_degrees[node] = in_deg
                 self.g_out_degrees[node] = out_deg
                 edge_data = graph.get_edge_data(node, node, default={weight: 0})
-                self.loops[node] = float(edge_data.get(weight, 1))
+                self.loops[node] = round(float(edge_data.get(weight, 1)), round_num)
                 self.internals[count] = self.loops[node]
                 count += 1
         else:
             for node in graph.nodes():
                 com = part[node]
                 self.node2com[node] = com
-                in_deg = float(graph.in_degree(node, weight=weight))
-                out_deg = float(graph.in_degree(node, weight=weight))
+                in_deg = round(float(graph.in_degree(node, weight=weight)), round_num)
+                out_deg = round(float(graph.in_degree(node, weight=weight)), round_num)
                 com_type = graph.node[node][nodetype]
                 if com not in self.com_nodes:
                     self.com_nodes[com] = com_type
@@ -70,5 +71,5 @@ class Status(object):
                     if edge_weight <= 0:
                         raise ValueError(f"Bad edge weight ({edge_weight})")
                     if part[neighbor] == com:
-                        inc += float(edge_weight)
-                self.internals[com] = self.internals.get(com, 0) + inc
+                        inc += round(float(edge_weight), round_num)
+                self.internals[com] = round(self.internals.get(com, 0) + inc, round_num)
