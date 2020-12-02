@@ -37,12 +37,15 @@ class LolGraph:
         new_lol_graph._map_number_to_node = self._map_number_to_node.copy()
         new_lol_graph.directed = self.directed
         new_lol_graph.weighted = self.weighted
-        return  new_lol_graph
+        return new_lol_graph
 
     # outdegree
     def out_degree(self, node):
+        number = self._map_node_to_number[node]
+        idx = self._index_list[number]
+        idx_end = self._index_list[number + 1]
         if self.is_weighted():
-            neighbors_list, weights_list = self.neighbors(node)
+            weights_list = self._weights_list[idx: idx_end]
             return sum(weights_list)
         else:
             neighbors_list = self.neighbors(node)
@@ -83,6 +86,29 @@ class LolGraph:
             return arr.index(x)
         return -1
 
+    # # indegree
+    # def in_degree(self, node):
+    #     sum = 0
+    #     for node_from in self.nodes():
+    #         if self.is_weighted():
+    #             neighbors_list, weights_list = self.neighbors(node_from)
+    #         else:
+    #             neighbors_list = self.neighbors(node_from)
+    #         x = self.nodes_binary_search(neighbors_list, node)
+    #         if x != -1:
+    #             if self.is_weighted():
+    #                 sum += weights_list[x]
+    #             else:
+    #                 sum += 1
+    #     return sum
+    #
+    # def predecessors(self, node):
+    #     nodes_list = []
+    #     for node_from in self.nodes():
+    #         if self.is_edge_between_nodes(node_from, node):
+    #             nodes_list.append(node_from)
+    #     return nodes_list
+
     def nodes(self):
         return list(self._map_node_to_number.keys())
 
@@ -110,10 +136,15 @@ class LolGraph:
 
     def get_edge_data(self, node1, node2, default=None):
         if self.is_weighted():
-            neighbors_list, weights_list = self.neighbors(node1)
-            x = self.nodes_binary_search(neighbors_list, node2)
-            if x != -1:
-                return {"weight": weights_list[x]}
+            number = self._map_node_to_number[node1]
+            idx = self._index_list[number]
+            idx_end = self._index_list[number + 1]
+            node1_neighbors = self._neighbors_list[idx: idx_end]
+            node2_index = self.binary_search(node1_neighbors, self._map_node_to_number[node2])
+            if node2_index != -1:
+            # if self._map_node_to_number[node2] in node1_neighbors:
+            #     node2_index = node1_neighbors.index(self._map_node_to_number[node2])
+                return {"weight": self._weights_list[idx + node2_index]}
             else:
                 if default is not None:
                     return default
@@ -405,13 +436,13 @@ class LolGraph:
 
 
 if __name__ == '__main__':
-    list_of_list_graph = LolGraphUndirected(directed=False, weighted=True)
-    rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", "toy_network_1")
-    graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
-                              os.walk(rootDir) for file in filenames]
-    graph_filenames.sort()
-    # list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
-    list_of_list_graph.convert([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45], [5,2,20]],  True, True)
+    # list_of_list_graph = LolGraphUndirected(directed=False, weighted=True)
+    # rootDir = os.path.join("..", "MultipartiteCommunityDetection", "data", "toy_network_1")
+    # graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
+    #                           os.walk(rootDir) for file in filenames]
+    # graph_filenames.sort()
+    # # list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
+    # list_of_list_graph.convert([[5, 1, 51], [2, 3, 23], [5, 3, 53], [4, 5, 45], [5,2,20]],  True, True)
     # print("index list", list_of_list_graph._index_list)
     # print("neighbors list", list_of_list_graph._neighbors_list)
     # print("weights list", list_of_list_graph._weights_list)
@@ -426,4 +457,5 @@ if __name__ == '__main__':
     # print("all nodes to node", "8c", list_of_list_graph.all_nodes_directed_to_node("8c"))
     # print("edge list:", list_of_list_graph.get_edge_list())
     # print(list_of_list_graph.get_weight_of_edge("1a", "1b"))
-    print("nodes", list_of_list_graph.nodes())
+    # print("nodes", list_of_list_graph.nodes())
+    pass
