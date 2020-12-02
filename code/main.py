@@ -1,79 +1,13 @@
 import argparse
 import os
-import sys
 from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3, probs_to_csv
-
+import matplotlib.pyplot as plt
 from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1
 import time
+import numpy as np
 import cProfile
-from memory_profiler import memory_usage, profile
-
-from multipartite_lol_graph import Multipartite_Lol
-
-
-def first_second_stage(graph_filenames, graph_ids, algorithm, first_stage_params, first_saving_paths, cutoff,
-                       resolution, beta_vec, second_saving_path, assess, draw, community_ground_truth=None):
-    """
-    Implement both the first (i.e. find probabilities of matching from one node to another for every bipartite
-    source-target graph) and second (i.e. from the directed graph with edge weights found earlier, divide the graph into
-    communities intended to represent one entity).
-    :param graph_filenames: A list of the names of csv files, each of which holds an undirected weighted bipartite
-           graph.
-    :param graph_ids: A corresponding list of tuples representing the types of source and target nodes.
-    :param algorithm: The algorithm to apply in the first stage.
-    :param first_stage_params: The hyper-parameters for the algorithm.
-    :param first_saving_paths: The paths (a list corresponding to graph_filenames) in which the results of the first
-           stage will be saved. Those are full paths.
-    :param cutoff: A float such that an edge with weight smaller than which will not appear in the graph used for the
-           second stage.
-    :param resolution: The resolution parameter of the Louvain-like algorithm we implement in the second stage.
-    :param beta_vec: The list of penalty values we use in the second stage.
-    :param second_saving_path: The path in which the results of the second stage will be saved. This is only the name,
-           without '.csv' and path, under which the file is saved.
-    :param assess: A boolean indicating whether to print our performance (Fraction of communities with exactly one node
-    of each type, and fraction of communities exactly caught).
-    :param draw: A boolean indicating whether to draw the final multipartite graph, with colors indicating which
-           nodes belong to which communities.
-    :param community_ground_truth: A path to the file of the ground truth communities. Required if one wants to evaluate
-    the performance of the model.
-    """
-    start = time.time()
-
-    second_graph_filenames = []
-    second_graph_ids = []
-    for graph_path, graph_id, first_saving_path in zip(graph_filenames, graph_ids, first_saving_paths):
-        first_saving_path_01 = first_saving_path[:-4] + "_01" + first_saving_path[-4:]
-        first_saving_path_10 = first_saving_path[:-4] + "_10" + first_saving_path[-4:]
-        second_graph_filenames.extend([first_saving_path_01, first_saving_path_10])
-        second_graph_ids.extend([graph_id, tuple(reversed(graph_id))])
-        MatchingProblem(graph_path, algorithm, first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
-        MatchingProblem(graph_path, algorithm, first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
-
-    gr = load_graph_from_files(second_graph_filenames, second_graph_ids, has_title=True, cutoff=cutoff)
-    gt = load_ground_truths(community_ground_truth) if community_ground_truth is not None else None
-
-    run_louvain(gr, second_saving_path, resolution, beta_vec, assess=assess, ground_truth=gt, draw=draw)
-
-
-def run_yoram_networks():
-    for network in range(2, 7):
-        print(network)
-        graph_files = [os.path.join("..", "BipartiteProbabilisticMatching", "data",
-                                    f"Obs_Pair_K_Network_{network}_Graph_{g}.csv") for g in range(1, 4)]
-        graph_node_types = [(0, i) for i in range(1, 4)]
-        first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
-                                                 f"yoram_network_{network}",
-                                                 f"yoram_network_{network}_graph_{g}.csv") for g in range(1, 4)]
-        # gt_file_name = os.path.join("..", "data", f"Real_Tags_K_Network_{network}.csv")
-        first_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
-        if not os.path.exists(os.path.join("..", "BipartiteProbabilisticMatching",
-                                           "results", f"yoram_network_{network}")):
-            os.mkdir(
-                os.path.join("..", "BipartiteProbabilisticMatching", "results", f"yoram_network_{network}"))
-        first_second_stage(graph_files, graph_node_types, "flow_numeric", first_params, first_stage_saving_paths,
-                           cutoff=0.0, resolution=0., beta_vec=[10., 10., 10., 10.],
-                           second_saving_path=f"yoram_network_{network}_communities", assess=False, draw=False,
-                           community_ground_truth=None)
+from memory_profiler import memory_usage
+from multipartite_lol_graph import MultipartiteLol
 
 
 def main():
@@ -85,7 +19,7 @@ def main():
     task_number = args.task
     source_dir = args.source
     destination_dir = args.destination
-    # run_yoram_networks()
+
     if task_number == '1' and source_dir and destination_dir:
         rootDir = os.path.join("..", "BipartiteProbabilisticMatching", "data", source_dir)
         graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
@@ -93,7 +27,7 @@ def main():
 
         first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
                                                  destination_dir,
-                                                 f"yoram_network_1_graph_{g}.csv") for g in range(1, 4)]
+                                                 f"yoram_network_graph_{g}.csv") for g in range(1, 4)]
         first_stage_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
 
         if not os.path.exists(os.path.join("..", "BipartiteProbabilisticMatching", "results",
@@ -117,17 +51,16 @@ def main():
 
         if lol:
             from MultipartiteCommunityDetection.code.run_louvain_lol import run_louvain, task2
-            graph = Multipartite_Lol()
-            graph.convert_with_csv(second_graph_filenames, from_to_ids, directed=True, weighted=True)
+            graph = MultipartiteLol()
+            graph.convert_with_csv(second_graph_filenames, from_to_ids)
             graph.set_nodes_type_dict()
+            destination_dir = destination_dir + "lol"
         else:
             from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
             graph = load_graph_from_files(second_graph_filenames, from_to_ids, has_title=True, cutoff=0.0)
-        t = time.time()
-        task2(graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+            destination_dir = destination_dir + "networkx"
 
-        end = time.time()
-        print(end-t)
+        task2(graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
 
     elif task_number == '3' and source_dir and destination_dir:
         max_steps = 4
@@ -140,9 +73,151 @@ def main():
         from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
         passway_probability = task3(max_steps, starting_point, graph_file_names, from_to_groups, destination_dir)
         probs_to_csv(passway_probability, destination_dir, starting_point)
+
     else:
         print("wrong/missing arguments...")
 
 
+def for_memory_task1(directory, idx):
+    rootDir = directory
+    graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
+                        os.walk(rootDir) for file in filenames]
+    graph_file_names.sort()
+    destination_dir = os.path.join(
+        os.path.join("..", "BipartiteProbabilisticMatching", "results", "experiment_result" + str(idx)))
+    first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
+                                "experiment_result" + str(idx),
+                                             f"yoram_network_1_graph_{g}.csv") for g in range(1, 4)]
+    first_stage_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
+
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+
+    task1(graph_file_names, first_stage_saving_paths, first_stage_params)
+
+
+def for_memory_task2(directory, idx, lol_flag):
+    from_to_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
+    rootDir = directory
+    graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
+                        os.walk(rootDir) for file in filenames]
+    graph_file_names.sort()
+
+    if lol_flag:
+        from MultipartiteCommunityDetection.code.run_louvain_lol import run_louvain, task2
+        graph = MultipartiteLol()
+        graph.convert_with_csv(graph_file_names, from_to_ids)
+        graph.set_nodes_type_dict()
+        print("Number of edges", graph.number_of_edges())
+        print("Number of nodes", graph.number_of_nodes())
+        destination_dir = "experiment_result_lol" + str(idx)
+    else:
+        from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
+        graph = load_graph_from_files(graph_file_names, from_to_ids, has_title=True, cutoff=0.0)
+        destination_dir = "experiment_result_networkx" + str(idx)
+
+    task2(graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+
+
+def check_memory_usage_task1():
+    rootDir = os.path.join("..", "BipartiteProbabilisticMatching", "graph_experiment")
+
+    nodes_size = [500, 2500, 5000, 10000, 15000, 20000, 25000]
+    dirctory_names = [rootDir + "/graph" + str(idx) for idx in nodes_size]
+    memory_list = []
+    timer_list = []
+    for idx, directory in enumerate(dirctory_names):
+        print(directory)
+        start = time.time()
+        k = memory_usage((for_memory_task1, (directory, idx)))
+        end = time.time()
+        timer_list.append(end-start)
+        memory_list.append(max(k))
+        print("The memory of task1 is: ", k)
+        print(f"Task 1 took {end - start} s")
+        k.clear()
+    plt.plot(nodes_size, memory_list, "-ok", color='red')
+    plt.xlabel("Size")
+    plt.ylabel("Memory Usage [MB]")
+    plt.title("Memory Usage As Function Of Size")
+    plt.savefig("Memory_Usage_Task1.png")
+
+    plt.clf()
+
+    plt.plot(nodes_size, timer_list, "-ok", color='blue')
+    plt.xlabel("Size")
+    plt.ylabel("Time [S]")
+    plt.title("Running time As Function Of Size")
+    plt.savefig("Running_Time_Task1.png")
+
+
+def check_memory_and_time_task2():
+    rootDir = os.path.join("..", "MultipartiteCommunityDetection", "graph_experiment")
+
+    nodes_size = [500, 2500, 5000, 10000, 15000, 20000, 25000]
+    # nodes_size = [500, 2500, 5000]
+    dirctory_names = [rootDir + "/experiment_result" + str(idx) for idx in range(len(nodes_size))]
+    memory_list_lol = []
+    timer_list_lol = []
+
+    memory_list_networkx = []
+    timer_list_networkx = []
+    for idx, directory in enumerate(dirctory_names):
+        print(directory)
+        start = time.time()
+        k = memory_usage((for_memory_task2, (directory, idx, True)))
+        end = time.time()
+        timer_list_lol.append(end - start)
+        memory_list_lol.append(max(k))
+        # print("The memory of task2 LOL is: ", k)
+        print(f"Task 2(Lol) took {end - start} s")
+        k.clear()
+
+        start = time.time()
+        k = memory_usage((for_memory_task2, (directory, idx, False)))
+        end = time.time()
+        timer_list_networkx.append(end - start)
+        memory_list_networkx.append(max(k))
+        # print("The memory of task2 NETWORKX is: ", k)
+        print(f"Task 2(Networkx) took {end - start} s")
+        k.clear()
+
+    plt.plot(nodes_size, memory_list_lol, "-ok", color='red')
+    plt.xlabel("Size")
+    plt.ylabel("Memory Usage [MB]")
+    plt.title("Memory Usage As Function Of Size(Lol)")
+    plt.savefig("Memory_Usage_Louvain_Like_Lol.png")
+
+    plt.clf()
+
+    plt.plot(nodes_size, timer_list_lol, "-ok", color='blue')
+    plt.xlabel("Size")
+    plt.ylabel("Time [s]")
+    plt.title("Running time As Function Of Size (Lol)")
+    plt.savefig("Running_Time_Louvain_Like_Lol.png")
+
+    plt.clf()
+
+    plt.plot(nodes_size, memory_list_networkx, "-ok", color='red')
+    plt.xlabel("Size")
+    plt.ylabel("Memory Usage [MB]")
+    plt.title("Memory Usage As Function Of Size (Networkx)")
+    plt.savefig("Memory_Usage_Louvain_Like_Networkx.png")
+
+    plt.clf()
+
+    plt.plot(nodes_size, timer_list_networkx, "-ok", color='blue')
+    plt.xlabel("Size")
+    plt.ylabel("Time [s]")
+    plt.title("Running time As Function Of Size (Networkx)")
+    plt.savefig("Running_Time_Louvain_Like_Networkx.png")
+
+
 if __name__ == '__main__':
-    cProfile.run('main()')
+    np.random.seed(42)
+    # main()
+    # cProfile.run('main()')
+    # cProfile.run("check_memory_and_time_task2()")
+    # check_memory_usage_task1()
+
+    check_memory_and_time_task2()
