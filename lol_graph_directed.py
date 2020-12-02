@@ -4,9 +4,9 @@ from lol_graph import *
 
 # Directed Lol Graph Wrapper
 class DLGW:
-    def __init__(self, directed=True, weighted=True):
-        self.lol_directed = LolGraph(directed=directed, weighted=weighted)
-        self.reversed_lol = LolGraph(directed=directed, weighted=weighted)
+    def __init__(self, weighted=True):
+        self.lol_directed = LolGraph(directed=True, weighted=weighted)
+        self.reversed_lol = LolGraph(directed=True, weighted=weighted)
 
     def convert(self, graph):
         self.lol_directed.convert(graph)
