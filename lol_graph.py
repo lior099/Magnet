@@ -87,13 +87,13 @@ class LolGraph:
     def in_degree(self, node):
         sum = 0
         for node_from in self.nodes():
-            if self.weighted:
+            if self.is_weighted():
                 neighbors_list, weights_list = self.neighbors(node_from)
             else:
                 neighbors_list = self.neighbors(node_from)
             x = self.nodes_binary_search(neighbors_list, node)
             if x != -1:
-                if self.weighted:
+                if self.is_weighted():
                     sum += weights_list[x]
                 else:
                     sum += 1
@@ -123,16 +123,16 @@ class LolGraph:
         # return False
 
     def size(self):
-        if self.weighted and not self.directed:
+        if self.is_weighted() and not self.is_directed():
             return sum(self._weights_list) / 2
-        if self.weighted:
+        if self.is_weighted():
             return sum(self._weights_list)
-        if not self.directed:
+        if not self.is_directed():
             return len(self._neighbors_list) / 2
         return len(self._neighbors_list)
 
     def get_edge_data(self, node1, node2, default=None):
-        if self.weighted:
+        if self.is_weighted():
             neighbors_list, weights_list = self.neighbors(node1)
             x = self.nodes_binary_search(neighbors_list, node2)
             if x != -1:
