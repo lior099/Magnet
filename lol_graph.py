@@ -83,29 +83,6 @@ class LolGraph:
             return arr.index(x)
         return -1
 
-    # indegree
-    def in_degree(self, node):
-        sum = 0
-        for node_from in self.nodes():
-            if self.is_weighted():
-                neighbors_list, weights_list = self.neighbors(node_from)
-            else:
-                neighbors_list = self.neighbors(node_from)
-            x = self.nodes_binary_search(neighbors_list, node)
-            if x != -1:
-                if self.is_weighted():
-                    sum += weights_list[x]
-                else:
-                    sum += 1
-        return sum
-
-    def predecessors(self, node):
-        nodes_list = []
-        for node_from in self.nodes():
-            if self.is_edge_between_nodes(node_from, node):
-                nodes_list.append(node_from)
-        return nodes_list
-
     def nodes(self):
         return list(self._map_node_to_number.keys())
 
