@@ -7,7 +7,6 @@ import networkx as nx
 import itertools
 from MultipartiteCommunityDetection.code.louvain_like import best_partition
 
-
 def load_graph_from_files(filenames, identities, has_title=True, cutoff=0.):
     """
     Build a directed graph appropriate for our Louvain algorithm.
@@ -73,7 +72,6 @@ def partition_to_csv(graph, partition, filename):
         for v, c in partition.items():
             w.writerow([v.split("_")[1], np.argmax(graph.nodes[v]['type']), c])
 
-
 def measure_performance(partition, ground_truth):
     """Return a score indicating how accurate the algorithm is by the partition and the ground truth sets."""
     assert ground_truth is not None, 'For measuring the performance, a ground truth is required'
@@ -127,21 +125,6 @@ def load_ground_truths(filename):
 
 
 def task2(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True):
-    # copy the results of task 1 to data folder of task 2
-    # shutil.copytree(os.path.join("..", "BipartiteProbabilisticMatching", "results", "yoram_network_1"),
-    #               os.path.join("..", "MultipartiteCommunityDetection", "data", "yoram_network_1"))
-
+    np.random.seed(42)
     run_louvain(graph, dump_name, res, beta, assess=False, ground_truth=None, draw=False)
 
-
-if __name__ == '__main__':
-    for network in range(1, 2):
-        print(network)
-        graph_filenames = [os.path.join("..", "data", f"Obs_Pair_K_Network_{network}_Graph_{g}.csv")
-                           for g in range(1, 4)]
-        graph_ids = [(0, i) for i in range(1, 4)]
-        file_name = os.path.join("..", "data", f"Real_Tags_K_Network_{network}.csv")
-        gr = load_graph_from_files(graph_filenames, graph_ids, has_title=False)
-        gt = load_ground_truths(file_name)
-        run_louvain(gr, f"yoram_network_{network}", 0., [10., 10., 10., 10.],
-                    assess=True, ground_truth=gt, draw=False)
