@@ -8,28 +8,12 @@ Note that this matrix is normalized over the rows only.
 2. Given a directed, weighted multipartite graph (with weights that could be the weights obtained from the first 
 solution), we divide the graph into communities, aiming that few nodes from each side will be in the same community.
 3. Given a directed, weighted multipartite graph (with weights that could be the weights obtained from the first 
-solution), we calculate the probabilities to get from a starting point to all vertices it reaches.
+solution), we calculate the probability to get from a starting point to all vertices that are reachable from starting point.
 
 ## Suggested Algorithms
 For the first problem, we suggest three algorithms (null model, flow and updating by degree) to solve this problem.  
 The second problem is solved by a variation of the Louvain algorithm.  
 
-The third problem is solved by the following algorithm:  
-```
-PathwayProbabilitiesCalculation(graph, max_steps, starting_point):  
-	Bfs(starting_point) returns two dictionaries. The first contains the distance of each reachable node from starting_point and the second contains vertices of each layer.
-		foreach layer:  
-			foreach vertex in layer:  
-      				foreach neighbor of vertex:  
-        				if neighbor's layer is smaller than vertex's layer:   
-          					continue  
-        				if neighbor's layer equals to vertex's layer:  
-          					calculate probability to reach the neighbor, consider the max_steps.  
-        				if neighbor's layer is larger than vertex's layer:  
-          					calculate probability to reach the neighbor only after completion of passway probabilities calculation of all vertices in layer.  
-  		normalize the pathway_probabilities_dictionary  
-  	return pathway_probabilities_dictionary  
-```
      
 
 The algorithms are implemented in the code directory of each algorithm (the flow algorithm has two implementations - analytic and 
