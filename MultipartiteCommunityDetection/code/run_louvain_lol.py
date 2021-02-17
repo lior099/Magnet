@@ -1,9 +1,8 @@
 import os
 import csv
 import numpy as np
-from memory_profiler import profile
-from scipy.sparse.linalg.eigen.arpack._arpack import timing
 
+from BipartiteProbabilisticMatching.code.matching_solutions import plot_toy_graphs
 from MultipartiteCommunityDetection.code.louvain_like_lol import best_partition
 from multipartite_lol_graph import MultipartiteLol
 
@@ -48,6 +47,7 @@ def run_louvain(graph, dump_name, res, beta, assess=True, ground_truth=None, dra
     assert len(beta) == num_types, "Beta vector length mismatches the number of types"
     partition = best_partition(graph, resolution=res, beta_penalty=beta)
     partition_to_csv(graph, partition, dump_name)
+    plot_toy_graphs(graph=graph, partition=partition, name="color", graphs_directions=[(0, 1)])
     # if assess:
     #     measure_performance(partition, ground_truth)
     # if draw:
@@ -57,16 +57,3 @@ def run_louvain(graph, dump_name, res, beta, assess=True, ground_truth=None, dra
 def task2(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True):
     np.random.seed(42)
     run_louvain(graph, dump_name, res, beta, assess=False, ground_truth=None, draw=False)
-
-
-if __name__ == '__main__':
-    np.random.seed(42)
-    rootDir = os.path.join("..", "..", "MultipartiteCommunityDetection", "data", "yoram_network_1")
-    graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
-                       os.walk(rootDir) for file in filenames]
-    list_of_list_graph = MultipartiteLol()
-    graph_filenames.sort()
-    list_of_list_graph.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)])
-    list_of_list_graph.set_nodes_type_dict()
-    run_louvain(list_of_list_graph, "yoram_network_1_lol", 0., [10., 10., 10.],
-                assess=False, ground_truth=None, draw=False)
