@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 from memory_profiler import memory_usage, profile
 import time
+import csv
 import sys
 
 
@@ -257,11 +258,98 @@ def task1(file_names, first_stage_saving_paths, first_stage_params):
     # first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
     #                                          "yoram_network_1",
     #                                          f"yoram_network_1_graph_{g}.csv") for g in range(1, 4)]
+    start = time.time()
     for graph_path, first_saving_path in zip(file_names, first_stage_saving_paths):
         first_saving_path_01 = first_saving_path[:-4] + "_01" + first_saving_path[-4:]
         first_saving_path_10 = first_saving_path[:-4] + "_10" + first_saving_path[-4:]
         MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
         MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
+    end = time.time()
+    plot_toy_graphs(file_names=file_names, name="small", graphs_directions=[(0, 1)], problem=[4, 16])
+    plot_toy_graphs(file_names=[first_saving_path_01], name="small_01", directed=True, graphs_directions=[(0, 1)], header=True, integer=False, problem=[0.18, 0.79])
+    plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
+    print(-start + end, "s")
+
+
+
+
+def plot_toy_graphs(graph=None, file_names=None, header=False, partition=None, name='', labels=False, directed=False, graphs_directions=None, integer=True, problem=[None, None]):
+    if file_names:
+        edges = []
+        nodes = []
+        for i in range(len(file_names)):
+            file = file_names[i]
+            with open(file, "r") as csvfile:
+                datareader = csv.reader(csvfile)
+                if header:
+                    next(datareader, None)  # skip the headers
+                for edge in datareader:
+                    named_edge = [str(graphs_directions[i][0]) + "_" + edge[0],
+                                  str(graphs_directions[i][1]) + "_" + edge[1], float(edge[2])]
+                    edges.append(named_edge)
+                    if named_edge[0] not in nodes:
+                        nodes.append(named_edge[0])
+                    if named_edge[1] not in nodes:
+                        nodes.append(named_edge[1])
+    if graph:
+        edges = graph.convert_back()
+        nodes = graph.nodes()
+    nodes.sort()
+    if directed:
+        graph = nx.DiGraph()
+    else:
+        graph = nx.Graph()
+    # nodes[0], nodes[1] = nodes[1], nodes[0]
+    graph.add_nodes_from(nodes)
+    graph.add_weighted_edges_from(edges)
+    np.random.seed(2)
+    colors = ['b', 'g', 'r', 'c', 'm', 'y']
+    colors = {'0': 'r', '1': 'orange', '2': 'g'}
+    colors = {'0': 'w', '1': 'w', '2': 'w'}
+    all_colors = {str(i): ['b', 'g', 'r', 'c', 'm', 'y'] for i in range(3)}
+    # node_colors = [colors[node.split("_")[0]] for node in nodes]
+    shapes = {'0': 'o', '1': 's', '2': '^'}
+    # node_shapes = [shapes[node.split("_")[0]] for node in nodes]
+    nodes_dict = {}
+    # node.split("_")[0]: node.split("_")[1] for node in nodes
+    for node in nodes:
+        if node.split("_")[0] not in nodes_dict.keys():
+            nodes_dict[node.split("_")[0]] = [node]
+        else:
+            nodes_dict[node.split("_")[0]].append(node)
+    if partition:
+        colors = {key: [all_colors[key][partition[node]] for node in nodes] for key, nodes in nodes_dict.items()}
+    labels = {node: node.split("_")[1] for node in nodes}
+    # labels = {i: {node: node.split("_")[1] for node in nodes_dict[i]} for i in ['0', '1', '2']}
+    # for i in "so^>v<dph8":
+    nodePos = nx.layout.bipartite_layout(graph, nodes_dict['0'])
+    nodePos = {node: pos[1] for pos, node in zip(nodePos.items(), nodes[::-1])}
+    plt.rcParams["figure.figsize"] = (4, 4)
+    if integer:
+        edges_labels = {(node1, node2): int(weight['weight']) for node1, node2, weight in graph.edges(data=True)}
+    else:
+        edges_labels = {(node1, node2): round(weight['weight'], 2) for node1, node2, weight in graph.edges(data=True)}
+    edges_labels1 = {edge: weight for edge, weight in edges_labels.items() if weight not in problem}
+    edges_labels2 = {edge: weight for edge, weight in edges_labels.items() if weight == problem[0]}
+    edges_labels3 = {edge: weight for edge, weight in edges_labels.items() if weight == problem[1]}
+    nx.draw(graph, nodePos, arrowsize=20)
+    for i, node_list in nodes_dict.items():
+        nx.draw_networkx_nodes(graph, nodePos, nodelist=node_list, node_shape=shapes[i], node_color=colors[i], node_size=500, edgecolors='black')
+    nx.draw_networkx_edges(graph, nodePos)
+    nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels1, label_pos=0.5)
+    nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels2, label_pos=0.4)
+    nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels3, label_pos=0.62)
+    nx.draw_networkx_labels(graph, nodePos, labels, font_size=16)
+    # plt.figure(figsize=(20, 20))
+    plt.xlim(-1.5, 1.5)
+    plt.ylim(-1.5, 1.5)
+    plt.savefig("toy_graph_"+name)
+    plt.show()
+
+
+    print()
+
+
 
 
 if __name__ == '__main__':
@@ -270,5 +358,5 @@ if __name__ == '__main__':
     parameters = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
     mp = MatchingProblem(os.path.join(data_path, "Obs_Pair_K_Network_1_Graph_1.csv"), "flow_numeric", parameters,
                          path=os.path.join(res_path, "edge_list_1_1.csv"))
-    # mp.visualize_results("visualization_example.png")
+    mp.visualize_results("visualization_example.png")
     # running_time()
