@@ -1,6 +1,5 @@
 import numpy as np
 import networkx as nx
-
 from MultipartiteCommunityDetection.code.status_directed import Status
 
 __MIN = 0.0000001
@@ -79,9 +78,19 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
     current_graph = graph.copy()
     status = Status()
     status.init(current_graph, weight, nodetype, part_init)
+
+    # attrs = vars(status)
+    # print("--------------networkx-------------")
+    # print(', '.join("%s: %s" % item for item in attrs.items()))
     status_list = []
     __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
+
+    # attrs = vars(status)
+    # print("--------------networkx-------------")
+    # print(', '.join("%s: %s" % item for item in attrs.items()))
+
     new_mod = __modularity(status, resolution, beta_penalty)
+    print(new_mod, "networkx")
     partition = __renumber(status.node2com)
     status_list.append(partition)
     mod = new_mod
@@ -106,7 +115,6 @@ def induced_graph(partition, graph, weight, nodetype):
     the same node in the resulting graph"""
     ret = nx.DiGraph()
     ret.add_nodes_from(partition.values())
-
     for node1, node2, datas in graph.edges(data=True):
         edge_weight = datas.get(weight, 1)
         com1 = partition[node1]
@@ -142,15 +150,20 @@ def __renumber(dictionary):
 
 
 def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
+    # print("graph.adj()", graph.adj)
+
     """Compute one level of communities"""
     modified = True
     cur_mod = __modularity(status, resolution, beta_penalty)
-    new_mod = cur_mod
+    # print(cur_mod, "networkx")
 
+    new_mod = cur_mod
+    np.random.seed(42)
     while modified:
         cur_mod = new_mod
         modified = False
         nodes_list = list(graph.nodes())
+
         np.random.shuffle(nodes_list)
 
         res_over_m = resolution / status.total_weight
@@ -160,25 +173,26 @@ def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
             neigh_com_in, neigh_com_out = __neighcom(node, graph, status, weight_key)
             node_type_vec = np.array(graph.nodes[node][nodetype])
             remove_cost = - (neigh_com_in.get(com_node, 0) + neigh_com_out.get(com_node, 0)) + \
-                ((status.in_degrees.get(com_node, 0.) - status.g_in_degrees.get(node, 0.)) *
-                 status.g_out_degrees.get(node, 0) +
-                 (status.out_degrees.get(com_node, 0.) - status.g_out_degrees.get(node, 0.)) *
-                 status.g_in_degrees.get(node, 0)) * res_over_m + \
-                2 * np.vdot(np.multiply(np.array(status.com_nodes[com_node]) - node_type_vec, node_type_vec),
-                            beta_penalty)
+                          ((status.in_degrees.get(com_node, 0.) - status.g_in_degrees.get(node, 0.)) *
+                           status.g_out_degrees.get(node, 0) +
+                           (status.out_degrees.get(com_node, 0.) - status.g_out_degrees.get(node, 0.)) *
+                           status.g_in_degrees.get(node, 0)) * res_over_m + \
+                          2 * np.vdot(np.multiply(np.array(status.com_nodes[com_node]) - node_type_vec, node_type_vec),
+                                      beta_penalty)
             __remove(node, com_node, neigh_com_in.get(com_node, 0.) + neigh_com_out.get(com_node, 0.), node_type_vec,
                      status)
             best_com = com_node
             best_increase = 0
             all_neigh_com = list(set(neigh_com_in.keys()).union(set(neigh_com_out.keys())))
+
             np.random.shuffle(all_neigh_com)
             for com in all_neigh_com:
                 neigh_in = neigh_com_in.get(com, 0)
                 neigh_out = neigh_com_out.get(com, 0)
                 incr = remove_cost + neigh_in + neigh_out - \
-                    (status.g_in_degrees.get(node, 0) * status.out_degrees.get(com, 0.) +
-                     status.g_out_degrees.get(node, 0) * status.in_degrees.get(com, 0.)) * res_over_m - \
-                    2 * np.vdot(np.multiply(status.com_nodes[com], node_type_vec), beta_penalty)
+                       (status.g_in_degrees.get(node, 0) * status.out_degrees.get(com, 0.) +
+                        status.g_out_degrees.get(node, 0) * status.in_degrees.get(com, 0.)) * res_over_m - \
+                       2 * np.vdot(np.multiply(status.com_nodes[com], node_type_vec), beta_penalty)
                 if incr > best_increase:
                     best_increase = incr
                     best_com = com
@@ -231,19 +245,19 @@ def __insert(node, com, weight, node_type, status):
 
 def __modularity(status, resolution, beta_penalty):
     """
-	Compute the modularity of the current partition (status).
-	The modularity of the partition in our solution is:
-	1 / m *  sum_{i,j} [[A_{ij} - resolution * k^{in}_{i} * k^{out}_{j} / m - beta[S_i, S_j]] * delta(C_i, C_j)]
-	where:
-	m - the sum of all edge weights in the graph.
-	A - the weighted adjacency matrix of the graph.
-	k^{in}_{i} (k^{out}, resp.) - the weighted in (out, resp.) degree of a node i.
-	S_i - the shape of a node i. If i represents an original node, it has a single type. 
-		  Otherwise, it holds a vector counting the number of nodes of each type held in the vertex. 
-	beta[S_i, S_j] - the sum over all possible node types, of the corresponding beta penalty for this type, times 
-					 the product of counts of this type in i and in j.
-	delta[C_i, C_j] - Kronecker's delta over the communities of i and j.
-	"""
+    Compute the modularity of the current partition (status).
+    The modularity of the partition in our solution is:
+    1 / m *  sum_{i,j} [[A_{ij} - resolution * k^{in}_{i} * k^{out}_{j} / m - beta[S_i, S_j]] * delta(C_i, C_j)]
+    where:
+    m - the sum of all edge weights in the graph.
+    A - the weighted adjacency matrix of the graph.
+    k^{in}_{i} (k^{out}, resp.) - the weighted in (out, resp.) degree of a node i.
+    S_i - the shape of a node i. If i represents an original node, it has a single type.
+          Otherwise, it holds a vector counting the number of nodes of each type held in the vertex.
+    beta[S_i, S_j] - the sum over all possible node types, of the corresponding beta penalty for this type, times
+                     the product of counts of this type in i and in j.
+    delta[C_i, C_j] - Kronecker's delta over the communities of i and j.
+    """
     links = float(status.total_weight)
     result = 0.
     for community in set(status.node2com.values()):
@@ -254,4 +268,5 @@ def __modularity(status, resolution, beta_penalty):
         if links > 0:
             result += within / links - resolution * in_deg * out_deg / (links ** 2) - \
                       np.vdot(beta_penalty, np.power(shape_counts, 2)) / links
+            # print(result, "networkx")
     return result
