@@ -5,11 +5,9 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import itertools
-
-from memory_profiler import profile
-
 from MultipartiteCommunityDetection.code.louvain_like import best_partition
 import time
+
 
 def load_graph_from_files(filenames, identities, has_title=True, cutoff=0.):
     """
@@ -75,7 +73,7 @@ def partition_to_csv(graph, partition, filename):
         w.writerow(["Node", "Type", "Community"])
         for v, c in partition.items():
             w.writerow([v.split("_")[1], np.argmax(graph.nodes[v]['type']), c])
-        print("------NETWORKX-----")
+        print("---NETWORKX---")
         check_accuracy(partition)
 
 
@@ -98,6 +96,7 @@ def check_accuracy(partition):
             counts_good += 1
     print("counts",counts)
     print("counts_good", counts_good)
+
 
 def measure_performance(partition, ground_truth):
     """Return a score indicating how accurate the algorithm is by the partition and the ground truth sets."""
@@ -155,24 +154,3 @@ def task2(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True
     np.random.seed(42)
     run_louvain(graph, dump_name, res, beta, assess=False, ground_truth=None, draw=False)
 
-
-if __name__ == '__main__':
-    np.random.seed(42)
-    file = "huge_graph1"
-    rootDir = os.path.join("..", "..", "MultipartiteCommunityDetection", "data", file)
-    graph_filenames = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
-                       os.walk(rootDir) for file in filenames]
-    graph_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]  #[(0, i) for i in range(1, 4)]
-    graph_filenames.sort()
-
-
-    # gr1 = Multipartite_Lol(directed=True, weighted=True)
-    #
-    # gr1.convert_with_csv(graph_filenames, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], True, True)
-    # list_of_list_graph.set_nodes_type_dict()
-
-    gr = load_graph_from_files(graph_filenames, graph_ids, has_title=True)
-    t2 = time.time()
-    run_louvain(gr, "huge_graph1",0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
-    end = time.time()
-    print(end - t2)
