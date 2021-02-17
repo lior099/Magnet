@@ -4,6 +4,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import os
+from memory_profiler import memory_usage, profile
 import time
 import sys
 
@@ -141,7 +142,7 @@ class MatchingProblem:
             if true in preds:
                 correct += 1
             tried += 1
-        return correct / tried
+        return correct / tried * 100
 
     def sum_prob_score(self):
         """
@@ -256,14 +257,11 @@ def task1(file_names, first_stage_saving_paths, first_stage_params):
     # first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
     #                                          "yoram_network_1",
     #                                          f"yoram_network_1_graph_{g}.csv") for g in range(1, 4)]
-    start = time.time()
     for graph_path, first_saving_path in zip(file_names, first_stage_saving_paths):
         first_saving_path_01 = first_saving_path[:-4] + "_01" + first_saving_path[-4:]
         first_saving_path_10 = first_saving_path[:-4] + "_10" + first_saving_path[-4:]
         MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
         MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
-    end = time.time()
-    print(-start + end, "s")
 
 
 if __name__ == '__main__':
