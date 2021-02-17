@@ -8,6 +8,9 @@ import numpy as np
 import cProfile
 from memory_profiler import memory_usage
 from multipartite_lol_graph import MultipartiteLol
+from os import path
+import sys
+sys.path.append(path.abspath('./StaticGraphEmbeddings-master/StaticGraphEmbeddings'))
 
 
 def main():
@@ -54,7 +57,7 @@ def main():
             graph = MultipartiteLol()
             graph.convert_with_csv(second_graph_filenames, from_to_ids)
             graph.set_nodes_type_dict()
-            destination_dir = destination_dir + "lol"
+            destination_dir = destination_dir + "_lol"
         else:
             from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
             graph = load_graph_from_files(second_graph_filenames, from_to_ids, has_title=True, cutoff=0.0)
@@ -115,6 +118,18 @@ def for_memory_task2(directory, idx, lol_flag):
         from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
         graph = load_graph_from_files(graph_file_names, from_to_ids, has_title=True, cutoff=0.0)
         destination_dir = "experiment_result_networkx" + str(idx)
+
+    task2(graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
+
+def ogre(directory, idx, lol_flag):
+    from_to_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
+    rootDir = directory
+    graph_file_names = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in
+                        os.walk(rootDir) for file in filenames]
+    graph_file_names.sort()
+    from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
+    graph = load_graph_from_files(graph_file_names, from_to_ids, has_title=True, cutoff=0.0)
+    destination_dir = "experiment_result_networkx" + str(idx)
 
     task2(graph, destination_dir, 0., [10., 10., 10.], assess=False, ground_truth=None, draw=False)
 
@@ -215,9 +230,9 @@ def check_memory_and_time_task2():
 
 if __name__ == '__main__':
     np.random.seed(42)
-    # main()
+    main()
     # cProfile.run('main()')
     # cProfile.run("check_memory_and_time_task2()")
     # check_memory_usage_task1()
 
-    check_memory_and_time_task2()
+    # check_memory_and_time_task2()
