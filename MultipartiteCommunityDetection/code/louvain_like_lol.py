@@ -75,14 +75,25 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
     current_graph = graph.copy()
     status = Status_Lol()
     status.init(current_graph, weight, nodetype, part_init)
+    # attrs = vars(status)
+    # print("--------------lol-------------")
+    # print(', '.join("%s: %s" % item for item in attrs.items()))
     status_list = []
     __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
+
+    # attrs = vars(status)
+    # print("--------------lol-------------")
+    # print(', '.join("%s: %s" % item for item in attrs.items()))
+
     new_mod = __modularity(status, resolution, beta_penalty)
+    # print(new_mod, "lol ")
     partition = __renumber(status.node2com)
     status_list.append(partition)
     mod = new_mod
     current_graph = induced_graph(partition, current_graph, weight, nodetype)
     status.init(current_graph, weight, nodetype)
+
+
 
     while True:
         __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
@@ -139,9 +150,12 @@ def __renumber(dictionary):
 
 
 def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
+    # print("graph.graph_adjacency()",graph.graph_adjacency())
+
     """Compute one level of communities"""
     modified = True
     cur_mod = __modularity(status, resolution, beta_penalty)
+    # print(cur_mod, "lol")
     new_mod = cur_mod
     np.random.seed(42)
     while modified:
@@ -191,6 +205,7 @@ def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
 def __neighcom(node, graph, status, weight_key):
     """Compute the communities in the neighborhood of node in the graph given with the decomposition node2com"""
     weights_out = {}
+    # for neighbor, edge_weight in graph.neighbors2(node).items():
     neighbors_list, weights_list = graph.neighbors(node)
     for neighbor, edge_weight in zip(neighbors_list, weights_list):
         if neighbor != node:
@@ -251,4 +266,5 @@ def __modularity(status, resolution, beta_penalty):
         if links > 0:
             result += within / links - resolution * in_deg * out_deg / (links ** 2) - \
                       np.vdot(beta_penalty, np.power(shape_counts, 2)) / links
+            # print(result, "lol")
     return result
