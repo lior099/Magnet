@@ -126,9 +126,10 @@ def bfs(edges_dict, starting_point, k):
 
 
 def probs_to_csv(probs, filename, start):
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", f"{filename}_from node_{start}.csv"), "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "results",
+                           f"{filename}_from node_{start}.csv"), "w") as f:
         w = csv.writer(f)
-        w.writerow(["Source","Target","Probability"])
+        w.writerow(["Source", "Target", "Probability"])
         for group, group_probs in probs.items():
             for target, probability in group_probs.items():
                 w.writerow([start, target, probability])
@@ -141,4 +142,11 @@ def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups, dest
     probs = iterate_by_layers(list_of_list_graph, limit_of_steps, starting_point)
     passway_probability = normalize_probs_matrix(probs)
     probs_to_csv(passway_probability, destination, starting_point)
+    return passway_probability
+
+
+def task3_for_acc(limit_of_steps, starting_point, graph, from_to_groups, destination):
+    probs = iterate_by_layers(graph, limit_of_steps, starting_point)
+    passway_probability = normalize_probs_matrix(probs)
+    # probs_to_csv(passway_probability, destination, starting_point)
     return passway_probability
