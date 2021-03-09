@@ -1,4 +1,4 @@
-function Make_Hackaton_Sim_Comb(Exp_Num,N_Users,False_Mass,False_Num,User_Removed_Frac,Comp_Removed_Frac,Use_Span)
+function Make_Hackaton_Sim_Comb(Name,N_Users,False_Mass,False_Num,User_Removed_Frac,Comp_Removed_Frac,Use_Span)
 N_Networks=3;
 ll=0;
 for ii=1:N_Networks
@@ -29,7 +29,13 @@ for ii=1:N_Networks
         [x,y]=find(A_Real>0);
         a=A_Real(A_Real>0);
         A_Real=[x y a];
-        csvwrite(sprintf('Obs_Pair_K_Network_%d_Graph_%d.csv',Exp_Num,ll),A);
-        csvwrite(sprintf('Real_Pair_K_Network_%d_Graph_%d.csv',Exp_Num,ll),A_Real);
+        
+        Dir_Str = split(Name,"_");
+        Dir=char(join(Dir_Str(2:end), '_'));
+        [status,msg]=mkdir(sprintf('data/%s/%s',Dir, Name));
+        [status,msg]=mkdir(sprintf('real_data/%s/%s',Dir, Name));
+        
+        csvwrite(sprintf('data/%s/%s/%s_graph_%d.csv',Dir, Name, Name, ll),A);
+        csvwrite(sprintf('real_data/%s/%s/%s_real_graph_%d.csv',Dir, Name, Name, ll),A_Real);
     end
 end
