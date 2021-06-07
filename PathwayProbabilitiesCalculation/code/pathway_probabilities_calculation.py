@@ -1,6 +1,10 @@
+import itertools
+import time
 from queue import Queue
 import copy
 import os
+from random import sample
+
 from multipartite_lol_graph import MultipartiteLol
 from lol_graph import *
 
@@ -126,8 +130,7 @@ def bfs(edges_dict, starting_point, k):
 
 
 def probs_to_csv(probs, filename, start):
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "results",
-                           f"{filename}_from node_{start}.csv"), "w") as f:
+    with open(filename, "w", newline='') as f:
         w = csv.writer(f)
         w.writerow(["Source", "Target", "Probability"])
         for group, group_probs in probs.items():
@@ -135,18 +138,68 @@ def probs_to_csv(probs, filename, start):
                 w.writerow([start, target, probability])
 
 
-def task3(limit_of_steps, starting_point, graph_files_name, from_to_groups, destination):
+def top5_probs_to_csv(probs, filename, start):
+    with open(filename, "a", newline='') as file:
+        nodes, nodes_probs = [], []
+        for group, group_probs in probs.items():
+            group_probs = dict(sorted(group_probs.items(), key=lambda item: item[1], reverse=True)[:5])
+            nodes += list(group_probs.keys())
+            nodes_probs += list(group_probs.values())
+
+        w = csv.writer(file)
+        if os.stat(filename).st_size == 0:
+            w.writerow(["Source", "Targets and Probabilities"])
+        w.writerow([start])
+        w.writerow([''] + nodes)
+        w.writerow([''] + nodes_probs)
+
+
+def task3(limit_of_steps, starting_points, graph_files_name, from_to_groups, destination):
+    start = time.time()
+    open(destination, 'w').close()
     list_of_list_graph = MultipartiteLol()
     list_of_list_graph.convert_with_csv(graph_files_name, from_to_groups)
+    list_of_list_graph.set_nodes_type_dict()
+    nodes = list_of_list_graph.nodes()
+    sampled_nodes = sample(nodes, starting_points)
+    for start_point in sampled_nodes:
+        probs = iterate_by_layers(list_of_list_graph, limit_of_steps, start_point)
+        passway_probability = normalize_probs_matrix(probs)
+        top5_probs_to_csv(passway_probability, destination, start_point)
+    return time.time() - start
 
-    probs = iterate_by_layers(list_of_list_graph, limit_of_steps, starting_point)
-    passway_probability = normalize_probs_matrix(probs)
-    probs_to_csv(passway_probability, destination, starting_point)
-    return passway_probability
+def eval_task3(results_files, method):
+    results_file = results_files[0]
+    with open(results_file, "r", newline='') as csvfile:
+        probs = {}
+        datareader = csv.reader(csvfile)
+        next(datareader, None)  # skip the headers
+        for source in datareader:
+            source = source[0]
+            group = source.split('_')[0]
+            neighbors = next(datareader)[1:]
+            neighbors_probs = next(datareader)[1:]
+            probs[source] = probs.get(source, {})
+            for neighbor, prob in zip(neighbors, neighbors_probs):
+                neighbor_group, neighbor = neighbor.split('_')
+                if neighbor_group != group:
+                    probs[source][neighbor_group] = probs[source].get(neighbor_group, {})
+                    probs[source][neighbor_group][neighbor] = float(prob)
+        if method == 'avg':
+            scores = [neighbors.get(node.split('_')[1], 0) for node, groups in probs.items() for neighbors in groups.values()]
+        elif method == 'avg_norm':
+            scores = [neighbors.get(node.split('_')[1], 0) / sum(neighbors.values()) if sum(neighbors.values()) else 0 for node, groups in probs.items() for neighbors in groups.values()]
+        elif method == 'winner':
+            scores = [1 if node.split('_')[1] == list(neighbors.keys())[0] else 0 for node, groups in probs.items() for neighbors in groups.values()]
+        elif method == 'top5':
+            scores = [1 if node.split('_')[1] in list(neighbors.keys())[:5] else 0 for node, groups in probs.items() for neighbors in groups.values()]
+        else:
+            raise Exception('method', method, 'not found!')
+    return 100 * np.mean(scores)
 
 
-def task3_for_acc(limit_of_steps, starting_point, graph, from_to_groups, destination):
-    probs = iterate_by_layers(graph, limit_of_steps, starting_point)
-    passway_probability = normalize_probs_matrix(probs)
-    # probs_to_csv(passway_probability, destination, starting_point)
-    return passway_probability
+# def task3_for_acc(limit_of_steps, starting_point, graph, from_to_groups, destination):
+#     probs = iterate_by_layers(graph, limit_of_steps, starting_point)
+#     passway_probability = normalize_probs_matrix(probs)
+#     # probs_to_csv(passway_probability, destination, starting_point)
+#     return passway_probability
