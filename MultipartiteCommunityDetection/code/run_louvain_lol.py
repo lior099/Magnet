@@ -1,5 +1,7 @@
 import os
 import csv
+import time
+
 import numpy as np
 
 from BipartiteProbabilisticMatching.code.matching_solutions import plot_toy_graphs
@@ -8,7 +10,7 @@ from multipartite_lol_graph import MultipartiteLol
 
 
 def partition_to_csv(graph, partition, filename):
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", f"{filename}.csv"), "w") as f:
+    with open(filename, "w", newline='') as f:
         w = csv.writer(f)
         w.writerow(["Node", "Type", "Community"])
         for v, c in partition.items():
@@ -47,7 +49,7 @@ def run_louvain(graph, dump_name, res, beta, assess=True, ground_truth=None, dra
     assert len(beta) == num_types, "Beta vector length mismatches the number of types"
     partition = best_partition(graph, resolution=res, beta_penalty=beta)
     partition_to_csv(graph, partition, dump_name)
-    plot_toy_graphs(graph=graph, partition=partition, name="color", graphs_directions=[(0, 1)])
+    # plot_toy_graphs(graph=graph, partition=partition, name="color", graphs_directions=[(0, 1)])
     # if assess:
     #     measure_performance(partition, ground_truth)
     # if draw:
@@ -56,4 +58,36 @@ def run_louvain(graph, dump_name, res, beta, assess=True, ground_truth=None, dra
 
 def task2(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True):
     np.random.seed(42)
-    run_louvain(graph, dump_name, res, beta, assess=False, ground_truth=None, draw=False)
+    start = time.time()
+
+    run_louvain(graph, dump_name, res, beta, assess=assess, ground_truth=ground_truth, draw=draw)
+    return time.time() - start
+
+def eval_task2(results_files, method):
+    results_file = results_files[0]
+    with open(results_file, "r", newline='') as csvfile:
+        coms = {}
+        datareader = csv.reader(csvfile)
+        next(datareader, None)  # skip the headers
+        for row in datareader:
+            if len(row) != 3:
+                continue
+            coms[row[2]] = coms.get(row[2], [])
+            coms[row[2]].append(row[1]+'_'+row[0])
+
+        scores = []
+        if method == 'avg_3':
+            for c, lst1 in coms.items():
+                if len(lst1) == 3 and lst1[0].split("_")[1] == lst1[1].split("_")[1] == lst1[2].split("_")[1]:
+                    scores.append(1)
+                elif len(lst1) == 3:
+                    scores.append(0)
+        elif method == 'avg_all':
+            for c, lst1 in coms.items():
+                if len(lst1) == 3 and lst1[0].split("_")[1] == lst1[1].split("_")[1] == lst1[2].split("_")[1]:
+                    scores.append(1)
+                else:
+                    scores.append(0)
+        else:
+            raise Exception('method', method, 'not found!')
+    return 100 * np.mean(scores)
