@@ -265,10 +265,35 @@ def task1(file_names, first_stage_saving_paths, first_stage_params):
         MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
         MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
     end = time.time()
-    plot_toy_graphs(file_names=file_names, name="small", graphs_directions=[(0, 1)], problem=[4, 16])
-    plot_toy_graphs(file_names=[first_saving_path_01], name="small_01", directed=True, graphs_directions=[(0, 1)], header=True, integer=False, problem=[0.18, 0.79])
-    plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
-    print(-start + end, "s")
+    # plot_toy_graphs(file_names=file_names, name="small", graphs_directions=[(0, 1)], problem=[4, 16])
+    # plot_toy_graphs(file_names=[first_saving_path_01], name="small_01", directed=True, graphs_directions=[(0, 1)], header=True, integer=False, problem=[0.18, 0.79])
+    # plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
+    return end-start
+
+def eval_task1(results_files, method):
+    files_scores = []
+    for file in results_files:
+        with open(file, "r", newline='') as csvfile:
+            probs = {}
+            datareader = csv.reader(csvfile)
+            next(datareader, None)  # skip the headers
+            for edge in datareader:
+                probs[edge[0]] = probs.get(edge[0], {})
+                probs[edge[0]][edge[1]] = float(edge[2])
+            for key, value in probs.items():
+                probs[key] = dict(sorted(value.items(), key=lambda item: item[1], reverse=True))
+
+            if method == 'avg':
+                scores = [neighbors.get(node, 0) for node, neighbors in probs.items()]
+            elif method == 'winner':
+                scores = [1 if node == list(neighbors.keys())[0] else 0 for node, neighbors in probs.items()]
+            elif method == 'top5':
+                scores = [1 if node in list(neighbors.keys())[:5] else 0 for node, neighbors in probs.items()]
+            else:
+                raise Exception('method', method,'not found!')
+            files_scores.append(np.mean(scores))
+    return 100 * np.mean(files_scores)
+
 
 
 
@@ -279,7 +304,7 @@ def plot_toy_graphs(graph=None, file_names=None, header=False, partition=None, n
         nodes = []
         for i in range(len(file_names)):
             file = file_names[i]
-            with open(file, "r") as csvfile:
+            with open(file, "r", newline='') as csvfile:
                 datareader = csv.reader(csvfile)
                 if header:
                     next(datareader, None)  # skip the headers
