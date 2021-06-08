@@ -4,6 +4,7 @@ import math
 
 import networkx as nx
 import numpy as np
+import sklearn
 
 from node2vec import Node2Vec
 
@@ -12,13 +13,13 @@ from StaticGraphEmbeddings.evaluation_tasks.calculate_static_embeddings import o
 
 import os
 import sys
-for root, dirs, files in os.walk(os.path.join('C:/', 'Users', 'Lior', 'Documents', 'University', 'DATA SCIENCE', 'Lab', 'Magnet', 'StaticGraphEmbeddings')):
+for root, dirs, files in os.walk('StaticGraphEmbeddings'):
     sys.path.append(os.path.abspath(root))
     for dir in dirs:
         sys.path.append(os.path.abspath(os.path.join(root, dir)))
 
 
-from Tests.proj import createKD
+# from Tests.proj import createKD
 
 
 def get_closest_neighbors(tree, node, k, node_to_embed, dic):
@@ -87,6 +88,15 @@ def node2vec_embed(graph_file_names, from_to_ids):
     # X is the embedding matrix and projections are the embedding dictionary
     return my_dict, graph
     # return X, my_dict
+
+def createKD(g_proj):
+    dic = {}
+    array = np.array(list(g_proj.values()))
+    i=0
+    for key in g_proj:
+        dic[i] = key
+        i+=1
+    return sklearn.neighbors.KDTree(array), dic
 
 
 def task4(graph_file_names, results_file, from_to_ids, embedding=None, epsilon=0.01):
