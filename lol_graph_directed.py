@@ -87,3 +87,6 @@ class DLGW:
 
     def swap_edge(self, edge_to_delete, edge_to_add):
         return self.lol_directed.swap_edge(edge_to_delete, edge_to_add)
+
+if __name__ == "__main__":
+    print("success")

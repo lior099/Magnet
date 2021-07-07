@@ -359,9 +359,7 @@ if __name__ == '__main__':
     # run_task(task="1", data_name="removed_nodes")
     # run_task(task="2", data_name="false_mass")
     # run_task(task="3", data_name="false_mass", evaluate=False)
-    # run_task(task="4", data_name="noisy_edges", params={'embedding': 'ogre'})
     # run_task(task="3", data_name="nodes", evaluate=False)
-    # run_task(task="4", data_name="false_mass", evaluate=True)
     # run_task(task="1", data_name="nodes")
     # eval_task('3', 'removed_nodes')
     # eval_task('4', 'false_mass')
@@ -369,7 +367,7 @@ if __name__ == '__main__':
     #     for data_name in ['false_mass', 'nodes', 'noisy_edges', 'removed_nodes']:
     #         run_task(task=task, data_name=data_name)
 
-    # run_task(task='4', data_name='false_mass', params={'embedding': 'ogre', 'epsilon': 0.1})
+    run_task(task='4', data_name='false_mass', params={'embedding': 'ogre', 'epsilon': 0.1})
     # run_task(task='4', data_name='false_mass', params={'embedding': 'node2vec'})
     # run_task(task='4', data_name='nodes', params={'embedding': 'ogre', 'epsilon': 0.1})
     # run_task(task='4', data_name='nodes', params={'embedding': 'node2vec'})
