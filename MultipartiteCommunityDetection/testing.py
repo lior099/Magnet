@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import itertools
-from MultipartiteCommunityDetection.code.louvain_like import best_partition
+from MultipartiteCommunityDetection.louvain_like import best_partition
 from lol_graph import LolGraph
 from multipartite_lol_graph import MultipartiteLol
 

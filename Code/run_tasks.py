@@ -2,10 +2,10 @@ import os
 import time
 import sys
 sys.path.append(os.path.abspath('..'))
-from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3, eval_task3
-from PathwayProbabilitiesCalculation.code.probabilities_using_embeddings import task4, eval_task4
+from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3, eval_task3
+from PathwayProbabilitiesCalculation.probabilities_using_embeddings import task4, eval_task4
 import matplotlib.pyplot as plt
-from BipartiteProbabilisticMatching.code.matching_solutions import task1, eval_task1
+from BipartiteProbabilisticMatching.matching_solutions import task1, eval_task1
 
 import numpy as np
 from memory_profiler import memory_usage
@@ -16,9 +16,9 @@ from multipartite_lol_graph import MultipartiteLol
 
 lol = True
 if lol:
-    from MultipartiteCommunityDetection.code.run_louvain_lol import task2, eval_task2
+    from MultipartiteCommunityDetection.run_louvain_lol import task2, eval_task2
 else:
-    from MultipartiteCommunityDetection.code.run_louvain import task2, load_graph_from_files
+    from MultipartiteCommunityDetection.run_louvain import task2, load_graph_from_files
 
 
 
@@ -283,7 +283,7 @@ def run_task(task, data_name, evaluate=True, params=None):
 
         elif task == '3':
             max_steps = 4
-            starting_points = 500  # '0_2'
+            starting_points = 5  # '0_2'
             from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
             results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
             args = (max_steps, starting_points, graph_files, from_to_groups, results_file)
@@ -355,10 +355,10 @@ if __name__ == '__main__':
     # FOR ACCURATE RUNTIME, ALWAYS RUN ON NORMAL, NOT DEBUG!
     start = time.time()
     np.random.seed(42)
-    # eval_task(task='4', data_name='nodes', params={'embedding': 'ogre'})
     # run_task(task="1", data_name="removed_nodes")
-    # run_task(task="2", data_name="false_mass")
-    # run_task(task="3", data_name="false_mass", evaluate=False)
+    # run_task(task="2", data_name="removed_nodes")
+    # run_task(task="3", data_name="removed_nodes")
+    run_task(task='4', data_name='removed_nodes', params={'embedding': 'node2vec'})
     # run_task(task="3", data_name="nodes", evaluate=False)
     # run_task(task="1", data_name="nodes")
     # eval_task('3', 'removed_nodes')
@@ -367,9 +367,10 @@ if __name__ == '__main__':
     #     for data_name in ['false_mass', 'nodes', 'noisy_edges', 'removed_nodes']:
     #         run_task(task=task, data_name=data_name)
 
-    run_task(task='1', data_name='false_mass', params={'embedding': 'ogre', 'epsilon': 0.1})
+    # run_task(task='4', data_name='false_mass', params={'embedding': 'ogre', 'epsilon': 0.1})
     # run_task(task='4', data_name='false_mass', params={'embedding': 'node2vec'})
     # run_task(task='4', data_name='nodes', params={'embedding': 'ogre', 'epsilon': 0.1})
     # run_task(task='4', data_name='nodes', params={'embedding': 'node2vec'})
+    # eval_task(task='4', data_name='nodes', params={'embedding': 'ogre'})
     # plot_all_results()
     print('TOTAL TIME:',time.time() - start)

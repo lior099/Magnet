@@ -4,8 +4,8 @@ import time
 
 import numpy as np
 
-from BipartiteProbabilisticMatching.code.matching_solutions import plot_toy_graphs
-from MultipartiteCommunityDetection.code.louvain_like_lol import best_partition
+from BipartiteProbabilisticMatching.matching_solutions import plot_toy_graphs
+from MultipartiteCommunityDetection.louvain_like_lol import best_partition
 from multipartite_lol_graph import MultipartiteLol
 
 

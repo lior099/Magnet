@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-from MultipartiteCommunityDetection.code.status_directed import Status
+from MultipartiteCommunityDetection.status_directed import Status
 
 __MIN = 0.0000001
 

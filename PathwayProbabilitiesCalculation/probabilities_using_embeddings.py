@@ -4,11 +4,11 @@ import math
 
 import networkx as nx
 import numpy as np
-import sklearn
+import sklearn.neighbors
 
 from node2vec import Node2Vec
 
-from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files
+from MultipartiteCommunityDetection.run_louvain import load_graph_from_files
 from StaticGraphEmbeddings.evaluation_tasks.calculate_static_embeddings import ogre_static_embeddings
 
 import os

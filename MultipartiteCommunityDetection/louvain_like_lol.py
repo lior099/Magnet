@@ -1,5 +1,5 @@
 import numpy as np
-from MultipartiteCommunityDetection.code.status_directed_lol import Status_Lol
+from MultipartiteCommunityDetection.status_directed_lol import Status_Lol
 from multipartite_lol_graph import MultipartiteLol
 
 __MIN = 0.0000001

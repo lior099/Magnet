@@ -29,7 +29,7 @@ of the following parameters (e.g. {'rho_0': 0.6, ...}):
 """
 import networkx as nx
 import numpy as np
-from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem
+from BipartiteProbabilisticMatching.matching_solutions import MatchingProblem
 from sklearn.preprocessing import normalize
 from scipy.sparse import csr_matrix, linalg, lil_matrix
 

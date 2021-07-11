@@ -1,10 +1,10 @@
 import argparse
 import os
-from PathwayProbabilitiesCalculation.code.pathway_probabilities_calculation import task3
-from PathwayProbabilitiesCalculation.code.probabilities_using_embeddings import task4
+from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3
+from PathwayProbabilitiesCalculation.probabilities_using_embeddings import task4
 import matplotlib.pyplot as plt
 import matplotlib
-from BipartiteProbabilisticMatching.code.matching_solutions import MatchingProblem, task1, eval_task1
+from BipartiteProbabilisticMatching.matching_solutions import MatchingProblem, task1, eval_task1
 
 import time
 import numpy as np
@@ -12,15 +12,13 @@ import cProfile
 from memory_profiler import memory_usage
 import csv
 
-# from Tests.NoisyEdges.noisy_edges_test import *
-from Tests.RemovedRealVertices.removed_real_vertices_test import *
 from multipartite_lol_graph import MultipartiteLol
 
 lol = True
 if lol:
-    from MultipartiteCommunityDetection.code.run_louvain_lol import run_louvain, task2, eval_task2
+    from MultipartiteCommunityDetection.run_louvain_lol import run_louvain, task2, eval_task2
 else:
-    from MultipartiteCommunityDetection.code.run_louvain import run_louvain, task2, load_graph_from_files
+    from MultipartiteCommunityDetection.run_louvain import run_louvain, task2, load_graph_from_files
 
 
 def main():

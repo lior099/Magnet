@@ -98,9 +98,9 @@ class MatchingProblem:
         :return: The final probability matrices p
         """
         if algorithm == "flow_analytic":
-            from BipartiteProbabilisticMatching.code.flow_analytic import algorithm
+            from BipartiteProbabilisticMatching.flow_analytic import algorithm
         elif algorithm == "flow_numeric":
-            from BipartiteProbabilisticMatching.code.flow_numeric import algorithm
+            from BipartiteProbabilisticMatching.flow_numeric import algorithm
         p = algorithm(self, params, is_normalized=is_normalized)
         return p
 
