@@ -168,7 +168,7 @@ def task3(limit_of_steps, starting_points, graph_files_name, from_to_groups, des
         top5_probs_to_csv(passway_probability, destination, start_point)
     return time.time() - start
 
-def eval_task3(results_files, method):
+def eval_task3(results_files, method, params):
     results_file = results_files[0]
     with open(results_file, "r", newline='') as csvfile:
         probs = {}

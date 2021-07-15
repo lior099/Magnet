@@ -13,6 +13,7 @@ from StaticGraphEmbeddings.evaluation_tasks.calculate_static_embeddings import o
 
 import os
 import sys
+
 for root, dirs, files in os.walk('StaticGraphEmbeddings'):
     sys.path.append(os.path.abspath(root))
     for dir in dirs:
@@ -22,30 +23,37 @@ for root, dirs, files in os.walk('StaticGraphEmbeddings'):
 # from Tests.proj import createKD
 
 
-def get_closest_neighbors(tree, node, k, node_to_embed, dic):
+def get_closest_neighbors(tree, node, k, node_to_embed, dic, num_of_groups):
     closest_neighbors = {}
     dist, ind = tree.query([node_to_embed[node]], k=k)
-    for group in ["0", "1", "2"]:
+    for group in range(num_of_groups):
+        group = str(group)
         if group != node.split("_")[0]:
-            closest_neighbors[group] = {dic[neighbor]: distance for neighbor, distance in zip(ind[0], dist[0]) if dic[neighbor].split("_")[0] == group}
+            closest_neighbors[group] = {dic[neighbor]: distance for neighbor, distance in zip(ind[0], dist[0]) if
+                                        dic[neighbor].split("_")[0] == group}
             closest_neighbors[group] = dict(list(closest_neighbors[group].items())[:5])
     counts = {group: len(nodes) for group, nodes in closest_neighbors.items()}
     return closest_neighbors, counts
 
+
 def fun_1(x):
-    return 1/x
+    return 1 / x
+
 
 def fun_2(x):
-    return 1/(1 + x**2)
+    return 1 / (1 + x ** 2)
+
 
 def fun_3(x):
     return math.exp(-x)
 
+
 def fun_4(x):
     return -x
 
+
 def log_mean(probs, alpha):
-    log = [-np.log(p+alpha) for p in probs]
+    log = [-np.log(p + alpha) for p in probs]
     return np.mean(log)
 
 
@@ -64,6 +72,7 @@ def top5_probs_to_csv(probs, filename, start):
         w.writerow([start])
         w.writerow([''] + nodes)
         w.writerow([''] + nodes_probs)
+
 
 def node2vec_embed(graph_file_names, from_to_ids):
     graph = load_graph_from_files(graph_file_names, from_to_ids)
@@ -89,22 +98,19 @@ def node2vec_embed(graph_file_names, from_to_ids):
     return my_dict, graph
     # return X, my_dict
 
+
 def createKD(g_proj):
-    dic = {}
     array = np.array(list(g_proj.values()))
-    i=0
-    for key in g_proj:
-        dic[i] = key
-        i+=1
+    dic = {i: key for i, key in enumerate(g_proj)}
     return sklearn.neighbors.KDTree(array), dic
 
 
-def task4(graph_file_names, results_file, from_to_ids, embedding=None, epsilon=0.01):
+def task4(graph_file_names, results_file, from_to_ids, num_of_groups, embedding=None, epsilon=0.01):
     start = time.time()
     open(results_file, 'w').close()
     distance_functions = [fun_3]  # [fun_1, fun_2, fun_3, fun_4]
     acc_dict = {fun: [] for fun in distance_functions}
-    index_count = [0]*6
+    index_count = [0] * 6
     # print(directory)
     if embedding == 'ogre':
         z, graph, initial_size, list_initial_proj_nodes = ogre_static_embeddings(graph_file_names, epsilon)
@@ -117,15 +123,14 @@ def task4(graph_file_names, results_file, from_to_ids, embedding=None, epsilon=0
             raise Exception("node2vec crashed...")
     else:
         raise Exception("embedding " + str(embedding) + " was not found")
-
     tree, dic = createKD(node_to_embed)
     for idx, node in dic.items():
         identity = node.split("_")[1]
         k = 11
-        closest_neighbors, counts = get_closest_neighbors(tree, node, k, node_to_embed, dic)
+        closest_neighbors, counts = get_closest_neighbors(tree, node, k, node_to_embed, dic, num_of_groups)
         while min(counts.values()) < 5:
             k += 10
-            closest_neighbors, counts = get_closest_neighbors(tree, node, k, node_to_embed, dic)
+            closest_neighbors, counts = get_closest_neighbors(tree, node, k, node_to_embed, dic, num_of_groups)
         # print("Node:",node)
         probs = {}
         for group, nodes in closest_neighbors.items():
@@ -138,10 +143,11 @@ def task4(graph_file_names, results_file, from_to_ids, embedding=None, epsilon=0
             for fun in distance_functions:
                 nodes_after_fun = {node: fun(distance) for node, distance in list(nodes.items())[:5]}
                 nodes_sum = sum(list(nodes_after_fun.values()))
-                if nodes_sum:
-                    distances_after_norm = [i/nodes_sum for i in list(nodes_after_fun.values())]
+                if nodes_sum != 0:
+                    distances_after_norm = [i / nodes_sum for i in list(nodes_after_fun.values())]
                 else:
-                    distances_after_norm = [1 if i == min(list(nodes.items())[:5]) else 0 for i in list(nodes.items())[:5]]
+                    distances_after_norm = [1 if i == min(list(nodes.items())[:5]) else 0 for i in
+                                            list(nodes.items())[:5]]
                 nodes_after_norm = {node: prob for node, prob in zip(nodes_after_fun.keys(), distances_after_norm)}
                 # prob = nodes_after_norm.get(identity, 0)
                 # acc_dict[fun].append(prob)
@@ -155,7 +161,6 @@ def task4(graph_file_names, results_file, from_to_ids, embedding=None, epsilon=0
     # print("acc", acc)
     # print("### Graph with ",len(graph.nodes), "nodes acc:",acc)
 
-
     # acc = sum(acc_dict[fun_3]) / len(acc_dict[fun_3])
     # alpha_list = [0.00001*2**i for i in range(12)]
     # acc_alpha = [log_mean(acc_dict[fun_3], alpha) for alpha in alpha_list]
@@ -164,7 +169,7 @@ def task4(graph_file_names, results_file, from_to_ids, embedding=None, epsilon=0
     return time.time() - start
 
 
-def eval_task4(results_files, method):
+def eval_task4(results_files, method, params):
     results_file = results_files[0]
     with open(results_file, "r", newline='') as csvfile:
         probs = {}
@@ -182,15 +187,17 @@ def eval_task4(results_files, method):
                     probs[source][neighbor_group] = probs[source].get(neighbor_group, {})
                     probs[source][neighbor_group][neighbor] = float(prob)
         if method == 'avg':
-            scores = [neighbors.get(node.split('_')[1], 0) for node, groups in probs.items() for neighbors in groups.values()]
+            scores = [neighbors.get(node.split('_')[1], 0) for node, groups in probs.items() for neighbors in
+                      groups.values()]
         elif method == 'avg_norm':
-            scores = [neighbors.get(node.split('_')[1], 0) / sum(neighbors.values()) for node, groups in probs.items() for neighbors in groups.values()]
+            scores = [neighbors.get(node.split('_')[1], 0) / sum(neighbors.values()) for node, groups in probs.items()
+                      for neighbors in groups.values()]
         elif method == 'winner':
-            scores = [1 if node.split('_')[1] == list(neighbors.keys())[0] else 0 for node, groups in probs.items() for neighbors in groups.values()]
+            scores = [1 if node.split('_')[1] == list(neighbors.keys())[0] else 0 for node, groups in probs.items() for
+                      neighbors in groups.values()]
         elif method == 'top5':
-            scores = [1 if node.split('_')[1] in list(neighbors.keys())[:5] else 0 for node, groups in probs.items() for neighbors in groups.values()]
+            scores = [1 if node.split('_')[1] in list(neighbors.keys())[:5] else 0 for node, groups in probs.items() for
+                      neighbors in groups.values()]
         else:
             raise Exception('method', method, 'not found!')
     return 100 * np.mean(scores)
-
-

@@ -1,6 +1,7 @@
 import os
 import time
 import sys
+
 sys.path.append(os.path.abspath('..'))
 from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3, eval_task3
 from PathwayProbabilitiesCalculation.probabilities_using_embeddings import task4, eval_task4
@@ -13,13 +14,11 @@ import csv
 
 from multipartite_lol_graph import MultipartiteLol
 
-
 lol = True
 if lol:
     from MultipartiteCommunityDetection.run_louvain_lol import task2, eval_task2
 else:
     from MultipartiteCommunityDetection.run_louvain import task2, load_graph_from_files
-
 
 
 def get_data_path(task, data_name):
@@ -93,15 +92,12 @@ def plot_results(results, colors, x_label, y_label, graph_name, labels=None, tit
 
 
 def plot_all_results():
-
     # plot_graph(runtime_destination, ["blue"], x_label="Fraction", y_label="Running Time[s]",
     #            save_path=runtime_destination[:-4] + ".png")
     # plot_graph(memory_destination, ["blue"], x_label="Fraction", y_label="Memory Usage[Mb]",
     #            save_path=memory_destination[:-4] + ".png")
     # runtime_destination = '..\\Results\\task_1\\task_1_false_mass\\task_1_false_mass_runtime.csv'
     # memory_destination = '..\\Results\\task_1\\task_1_false_mass\\task_1_false_mass_memory.csv'
-
-
 
     results = [{'task': '3', 'name': 'false_mass', 'graph': 'avg_accuracy'},
                {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_avg_accuracy'},
@@ -188,17 +184,6 @@ def plot_all_results():
     # plot_results(results, ['blue', 'red'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_top5_accuracy',
     #              ['task 3', 'task 4'], 'Tasks 3 vs 4 false mass top-5 accuracy')
 
-
-
-
-
-
-
-
-
-
-
-
     # results = [{'task': '1', 'name': 'false_mass', 'graph': 'runtime'}]
     # colors = ['blue']
     # plot_results(results, colors, 'Fraction', 'Running Time[s]', 'task_1_false_mass_nodes_runtime')
@@ -206,6 +191,7 @@ def plot_all_results():
     # results = [{'task': '1', 'name': 'false_mass', 'graph': 'memory'}]
     # colors = ['blue']
     # plot_results(results, colors, 'Fraction', 'Memory Usage[Mb]', 'task_1_false_mass_memory')
+
 
 def task_destinations(destination, task, data_name, params):
     destinations = {}
@@ -216,6 +202,7 @@ def task_destinations(destination, task, data_name, params):
     destinations['memory'] = os.path.join(destination, "_".join(string_list + ["memory.csv"]))
     return destinations
 
+
 def eval_destinations(destination, task, data_name, methods, params):
     destinations = {}
     string_list = ["task", task, data_name, params.get('embedding')]
@@ -225,11 +212,22 @@ def eval_destinations(destination, task, data_name, methods, params):
         destinations[method] = os.path.join(destination, "_".join(string_list + [method, "accuracy.csv"]))
     return destinations
 
+def create_from_to_id(num_of_groups):
+    # this function create something like this: [(0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1)]
+    from_to_ids = []
+    for i in range(num_of_groups):
+        for j in range(num_of_groups):
+            if i < j:
+                from_to_ids.append((i, j))
+                from_to_ids.append((j, i))
+    return from_to_ids
+
 
 def run_task(task, data_name, evaluate=True, params=None):
     print("Running task", task, 'on data', data_name, 'with params', params)
     if params is None:
         params = {}
+    num_of_groups = params.get('num_of_groups', 3)
     func_dict = {'1': task1, '2': task2, '3': task3, '4': task4}
     task_func = func_dict[task]
     data_path = get_data_path(task, data_name)
@@ -243,7 +241,8 @@ def run_task(task, data_name, evaluate=True, params=None):
     destinations = task_destinations(destination, task, data_name, params)
 
     # TODO: change this to match embedding
-    results_dirs = [os.path.join(destinations['results'], "_".join(["task", task, graph_name, "results"])) for graph_name in graphs_names]
+    results_dirs = [os.path.join(destinations['results'], "_".join(["task", task, graph_name, "results"])) for
+                    graph_name in graphs_names]
 
     runtime_list = []
     memory_list = []
@@ -262,15 +261,15 @@ def run_task(task, data_name, evaluate=True, params=None):
         if not os.path.exists(results_dir):
             os.makedirs(results_dir)
         graph_files = [os.path.join(graph_path, file_name) for file_name in os.listdir(graph_path)]
+        from_to_ids = create_from_to_id(num_of_groups)
 
         if task == '1':
-            params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
+            task_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
             results_files = [os.path.join(results_dir, file_name) for file_name in os.listdir(graph_path)]
-            args = (graph_files, results_files, params)
+            args = (graph_files, results_files, task_params)
 
         elif task == '2':
             # TODO: make it more pretty
-            from_to_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
             if lol:
                 graph = MultipartiteLol()
                 graph.convert_with_csv(graph_files, from_to_ids)
@@ -284,16 +283,14 @@ def run_task(task, data_name, evaluate=True, params=None):
         elif task == '3':
             max_steps = 4
             starting_points = 5  # '0_2'
-            from_to_groups = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
             results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-            args = (max_steps, starting_points, graph_files, from_to_groups, results_file)
+            args = (max_steps, starting_points, graph_files, from_to_ids, results_file)
 
         elif task == '4':
-            from_to_ids = [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)]
             # TODO: change this to match embedding
             results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-            args = (graph_files, results_file, from_to_ids)
-            args_dict = params
+            args = (graph_files, results_file, from_to_ids, num_of_groups)
+            args_dict = {param: params[param] for param in ['embedding', 'epsilon'] if param in params}
 
         memory, runtime = memory_usage((task_func, args, args_dict), retval=True, max_iterations=1)
         runtime_list.append(runtime)
@@ -321,7 +318,7 @@ def eval_task(task, data_name, params, methods=None, location=None):
         if task == '1':
             methods = ['avg', 'winner', 'top5']
         elif task == '2':
-            methods = ['avg_3', 'avg_all']
+            methods = ['avg_full', 'avg_all']
         elif task == '3':
             methods = ['avg', 'avg_norm', 'winner', 'top5']
         elif task == '4':
@@ -344,33 +341,33 @@ def eval_task(task, data_name, params, methods=None, location=None):
         x_list = []
         # accuracy_destination = os.path.join(location, "_".join(["task", task, data_name, method, "accuracy.csv"]))
         for results_dir, graph_name in zip(results_dirs, graphs_names):
-            print(graph_name)
+            print("Evaluating graph", graph_name, "with method", method)
             results_files = [os.path.join(results_dir, results_file) for results_file in os.listdir(results_dir)]
-            accuracy = eval_func(results_files, method)
+            accuracy = eval_func(results_files, method, params)
             accuracy_list.append(accuracy)
             x_list.append(graph_name.split("_")[0].replace(",", "."))
         save_to_file([['x'] + x_list, [data_name] + accuracy_list], destinations[method])
+
 
 if __name__ == '__main__':
     # FOR ACCURATE RUNTIME, ALWAYS RUN ON NORMAL, NOT DEBUG!
     start = time.time()
     np.random.seed(42)
-    # run_task(task="1", data_name="removed_nodes")
-    # run_task(task="2", data_name="removed_nodes")
-    # run_task(task="3", data_name="removed_nodes")
-    run_task(task='4', data_name='removed_nodes', params={'embedding': 'node2vec'})
-    # run_task(task="3", data_name="nodes", evaluate=False)
-    # run_task(task="1", data_name="nodes")
-    # eval_task('3', 'removed_nodes')
-    # eval_task('4', 'false_mass')
-    # for task in ['1', '2', '3', '4']:
-    #     for data_name in ['false_mass', 'nodes', 'noisy_edges', 'removed_nodes']:
-    #         run_task(task=task, data_name=data_name)
 
-    # run_task(task='4', data_name='false_mass', params={'embedding': 'ogre', 'epsilon': 0.1})
-    # run_task(task='4', data_name='false_mass', params={'embedding': 'node2vec'})
-    # run_task(task='4', data_name='nodes', params={'embedding': 'ogre', 'epsilon': 0.1})
-    # run_task(task='4', data_name='nodes', params={'embedding': 'node2vec'})
-    # eval_task(task='4', data_name='nodes', params={'embedding': 'ogre'})
+    # examples for 2 groups:
+    # run_task(task="1", data_name="test", params={'num_of_groups': 2})
+    # run_task(task="2", data_name="test", params={'num_of_groups': 2})
+    # run_task(task="3", data_name="test", params={'num_of_groups': 2})
+    # run_task(task='4', data_name='test', params={'num_of_groups': 2, 'embedding': 'node2vec'})
+    # run_task(task='4', data_name='test', params={'num_of_groups': 2, 'embedding': 'ogre', 'epsilon': 0.1})
+
+    # examples for 3 groups:
+    # run_task(task="1", data_name="removed_nodes", params={'num_of_groups': 3})
+    # run_task(task="2", data_name="removed_nodes", params={'num_of_groups': 3})
+    # run_task(task="3", data_name="removed_nodes", params={'num_of_groups': 3})
+    # run_task(task='4', data_name='removed_nodes', params={'num_of_groups': 3, 'embedding': 'node2vec'})
+    # run_task(task='4', data_name='removed_nodes', params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
+
+
     # plot_all_results()
-    print('TOTAL TIME:',time.time() - start)
+    print('TOTAL TIME:', time.time() - start)

@@ -270,7 +270,7 @@ def task1(file_names, first_stage_saving_paths, first_stage_params):
     # plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
     return end-start
 
-def eval_task1(results_files, method):
+def eval_task1(results_files, method, params):
     files_scores = []
     for file in results_files:
         with open(file, "r", newline='') as csvfile:

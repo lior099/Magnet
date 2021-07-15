@@ -63,8 +63,9 @@ def task2(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True
     run_louvain(graph, dump_name, res, beta, assess=assess, ground_truth=ground_truth, draw=draw)
     return time.time() - start
 
-def eval_task2(results_files, method):
+def eval_task2(results_files, method, params):
     results_file = results_files[0]
+    num_of_groups = params.get('num_of_groups', 3)
     with open(results_file, "r", newline='') as csvfile:
         coms = {}
         datareader = csv.reader(csvfile)
@@ -76,15 +77,21 @@ def eval_task2(results_files, method):
             coms[row[2]].append(row[1]+'_'+row[0])
 
         scores = []
-        if method == 'avg_3':
-            for c, lst1 in coms.items():
-                if len(lst1) == 3 and lst1[0].split("_")[1] == lst1[1].split("_")[1] == lst1[2].split("_")[1]:
+        # avg between all the groups that have a full match (for example only [0_22, 1_22, 2_22])
+        if method == 'avg_full':
+            for c, nodes in coms.items():
+                nodes_com, nodes_idx = zip(*[node.split("_") for node in nodes])
+                # check if nodes_idx has only one unique value, it means the community is good
+                if len(nodes) == num_of_groups and len(set(nodes_idx)) == 1:
                     scores.append(1)
-                elif len(lst1) == 3:
+                elif len(nodes) == num_of_groups:
                     scores.append(0)
+        # avg between all the groups (for example [0_22, 1_22, 2_22], [0_22, 2_22])
         elif method == 'avg_all':
-            for c, lst1 in coms.items():
-                if len(lst1) == 3 and lst1[0].split("_")[1] == lst1[1].split("_")[1] == lst1[2].split("_")[1]:
+            for c, nodes in coms.items():
+                nodes_com, nodes_idx = zip(*[node.split("_") for node in nodes])
+                # check if nodes_idx has only one unique value, it means the community is good
+                if len(nodes) == num_of_groups and len(set(nodes_idx)) == 1:
                     scores.append(1)
                 else:
                     scores.append(0)
