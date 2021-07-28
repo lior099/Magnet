@@ -1,6 +1,11 @@
 import os
+import random
 import time
 import sys
+
+from Code.graphs import Params
+from Code.tasks import BipartiteProbabilisticMatchingTask, MultipartiteCommunityDetectionTask, \
+    PathwayProbabilitiesCalculationTask, ProbabilitiesUsingEmbeddingsTask
 
 sys.path.append(os.path.abspath('..'))
 from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3, eval_task3
@@ -20,23 +25,55 @@ if lol:
 else:
     from MultipartiteCommunityDetection.run_louvain import task2, load_graph_from_files
 
+SEP = '/'
 
-def get_data_path(task, data_name):
-    # TODO: change data_path to be more dynamic
-    if task == '1':
-        data_path = os.path.join("..", "Results", "data", data_name)
+def get_data_path(task, results_root, data_name):
+    if '1' in str(task):
+        data_path = SEP.join([results_root, 'data', data_name])
     else:
-        data_path = os.path.join("..", "Results", "task_1", "task_1_" + data_name, "task_1_" + data_name + "_results")
+        data_path = SEP.join([results_root, 'task_1_BipartiteProbabilisticMatching', data_name, 'results'])
     if not os.path.exists(data_path):
         raise Exception("data not found")
     return data_path
 
 
 def get_graphs_paths(data_path):
-    graphs_names = ['_'.join(dir_name.split('_')[2:-1]) if "_results" in dir_name else dir_name for dir_name in
+    graphs_paths = [SEP.join([data_path, graph_dir]) for graph_dir in os.listdir(data_path)]
+    graphs_names = ['_'.join(dir_name.split('_')[:-1]) if "_results" in dir_name else dir_name for dir_name in
                     os.listdir(data_path)]
-    graphs_paths = [os.path.join(data_path, graph_dir) for graph_dir in os.listdir(data_path)]
-    return graphs_paths, graphs_names
+    graphs_ids = [float(name.split('_')[0].replace(',', '.')) for name in graphs_names]
+    return graphs_paths, graphs_names, graphs_ids
+
+
+def get_graphs_params(task, results_root, data_name):
+    graphs_params = []
+    data_path = get_data_path(task, results_root, data_name)
+    graphs_paths, graphs_names, graphs_ids = get_graphs_paths(data_path)
+    for graph_path, graph_name, graph_id in zip(graphs_paths, graphs_names, graphs_ids):
+        graph_files = [SEP.join([graph_path, file_name]) for file_name in os.listdir(graph_path) if 'gt.csv' not in file_name]
+        gt_file = [SEP.join([graph_path, file_name]) for file_name in os.listdir(graph_path) if 'gt.csv' in file_name]
+        num_of_groups = task.task_params.get('num_of_groups', 3)
+        from_to_ids = create_from_to_ids(num_of_groups)
+        params = Params(data_name, graph_name, graph_id, graph_path, graph_files, gt_file, num_of_groups, from_to_ids)
+        graphs_params.append(params)
+    graphs_params_sorted = sorted(graphs_params, key=lambda x: x.id)
+    return graphs_params_sorted
+
+
+# def task_destinations(destination, task, data_name, params):
+#     destinations = {}
+#     string_list = ["task", str(task), data_name, params.get('embedding')]
+#     string_list = [string for string in string_list if string]
+#     destinations['results'] = SEP.join(destination, "_".join(string_list + ["results"]))
+#     destinations['runtime'] = SEP.join(destination, "_".join(string_list + ["runtime.csv"]))
+#     destinations['memory'] = SEP.join(destination, "_".join(string_list + ["memory.csv"]))
+#     return destinations
+
+# def save_to_file(lines_list, path):
+#     with open(path, 'w', newline='') as file:
+#         wr = csv.writer(file)
+#         for line in lines_list:
+#             wr.writerow(line)
 
 
 def plot_graph(data_paths, colors, x_label, y_label, save_path=None, my_labels=None, title=''):
@@ -68,23 +105,16 @@ def plot_graph(data_paths, colors, x_label, y_label, save_path=None, my_labels=N
     plt.clf()
 
 
-def save_to_file(lines_list, path):
-    with open(path, 'w', newline='') as file:
-        wr = csv.writer(file)
-        for line in lines_list:
-            wr.writerow(line)
-
-
 def plot_results(results, colors, x_label, y_label, graph_name, labels=None, title=''):
     paths = []
     for result in results:
-        path = os.path.join("..",
+        path = SEP.join(["..",
                             "Results",
                             "_".join(["task", result["task"]]),
                             "_".join(["task", result["task"], result["name"]]),
-                            "_".join(["task", result["task"], result["name"], result["graph"]]) + '.csv')
+                            "_".join(["task", result["task"], result["name"], result["graph"]]) + '.csv'])
         paths.append(path)
-    save_path = os.path.join("..", "Results", graph_name + ".png")
+    save_path = SEP.join(["..", "Results", graph_name + ".png"])
     plot_graph(paths, colors, x_label=x_label, y_label=y_label, save_path=save_path, my_labels=labels, title=title)
     # plot_graph(paths, colors, x_label="Fraction", y_label="Running Time[s]", save_path=save_path)
     # plot_graph([memory_destination], ["blue"], x_label="Fraction", y_label="Memory Usage[Mb]",
@@ -193,26 +223,19 @@ def plot_all_results():
     # plot_results(results, colors, 'Fraction', 'Memory Usage[Mb]', 'task_1_false_mass_memory')
 
 
-def task_destinations(destination, task, data_name, params):
-    destinations = {}
-    string_list = ["task", task, data_name, params.get('embedding')]
-    string_list = [string for string in string_list if string]
-    destinations['results'] = os.path.join(destination, "_".join(string_list + ["results"]))
-    destinations['runtime'] = os.path.join(destination, "_".join(string_list + ["runtime.csv"]))
-    destinations['memory'] = os.path.join(destination, "_".join(string_list + ["memory.csv"]))
-    return destinations
 
 
-def eval_destinations(destination, task, data_name, methods, params):
-    destinations = {}
-    string_list = ["task", task, data_name, params.get('embedding')]
-    string_list = [string for string in string_list if string]
-    destinations['results'] = os.path.join(destination, "_".join(string_list + ["results"]))
-    for method in methods:
-        destinations[method] = os.path.join(destination, "_".join(string_list + [method, "accuracy.csv"]))
-    return destinations
 
-def create_from_to_id(num_of_groups):
+# def eval_destinations(destination, task, data_name, methods, params):
+#     destinations = {}
+#     string_list = ["task", task, data_name, params.get('embedding')]
+#     string_list = [string for string in string_list if string]
+#     destinations['results'] = SEP.join([destination, "_".join(string_list + ["results"])])
+#     for method in methods:
+#         destinations[method] = SEP.join([destination, "_".join(string_list + [method, "accuracy.csv"])])
+#     return destinations
+
+def create_from_to_ids(num_of_groups):
     # this function create something like this: [(0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1)]
     from_to_ids = []
     for i in range(num_of_groups):
@@ -223,150 +246,142 @@ def create_from_to_id(num_of_groups):
     return from_to_ids
 
 
-def run_task(task, data_name, evaluate=True, params=None):
-    print("Running task", task, 'on data', data_name, 'with params', params)
-    if params is None:
-        params = {}
-    num_of_groups = params.get('num_of_groups', 3)
-    func_dict = {'1': task1, '2': task2, '3': task3, '4': task4}
-    task_func = func_dict[task]
-    data_path = get_data_path(task, data_name)
-    graphs_paths, graphs_names = get_graphs_paths(data_path)
 
-    destination = os.path.join("..",
-                               "Results",
-                               "_".join(["task", task]),
-                               "_".join(["task", task, data_name]))
-
-    destinations = task_destinations(destination, task, data_name, params)
-
-    # TODO: change this to match embedding
-    results_dirs = [os.path.join(destinations['results'], "_".join(["task", task, graph_name, "results"])) for
-                    graph_name in graphs_names]
-
-    runtime_list = []
+def run(task, graphs_params, evaluate=True):
+    print("Running task", task, 'on data', graphs_params[0].data_name, 'with params', task.task_params)
+    task.clean()
     memory_list = []
-    x_list = []
-    args = ()
-    args_dict = {}
-
-    # TODO: get rid of if task == i
-    for graph_path, results_dir, graph_name in zip(graphs_paths, results_dirs, graphs_names):
-        print('Running on graph', graph_name)
-
+    for graph_params in graphs_params:
         # if int(graph_name.split('_')[0]) != 300:
         #     continue
         # print("TESTING MODE!!")
 
-        if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
-        graph_files = [os.path.join(graph_path, file_name) for file_name in os.listdir(graph_path)]
-        from_to_ids = create_from_to_id(num_of_groups)
+        # if task == '1':
+        #     graphs_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
+        #     results_files = [os.path.join(results_dir, file_name) for file_name in os.listdir(graph_path)]
+        #     args = (graph_files, results_files, graphs_params)
+        #
+        # elif task == '2':
+        #     # TODO: make it more pretty
+        #     if lol:
+        #         graph = MultipartiteLol()
+        #         graph.convert_with_csv(graph_files, from_to_ids)
+        #         graph.set_nodes_type_dict()
+        #     else:
+        #         graph = load_graph_from_files(graph_files, from_to_ids, has_title=True, cutoff=0.0)
+        #     results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
+        #     args = (graph, results_file, 0., [10., 10., 10.])
+        #     args_dict = {'assess': False, 'ground_truth': None, 'draw': False}
+        #
+        # elif task == '3':
+        #     max_steps = 4
+        #     starting_points = 5  # '0_2'
+        #     results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
+        #     args = (max_steps, starting_points, graph_files, from_to_ids, results_file)
+        #
+        # elif task == '4':
+        #     # TODO: change this to match embedding
+        #     results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
+        #     args = (graph_files, results_file, from_to_ids, num_of_groups)
+        #     args_dict = {param: graphs_params[param] for param in ['embedding', 'epsilon'] if param in graphs_params}
 
-        if task == '1':
-            task_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
-            results_files = [os.path.join(results_dir, file_name) for file_name in os.listdir(graph_path)]
-            args = (graph_files, results_files, task_params)
-
-        elif task == '2':
-            # TODO: make it more pretty
-            if lol:
-                graph = MultipartiteLol()
-                graph.convert_with_csv(graph_files, from_to_ids)
-                graph.set_nodes_type_dict()
-            else:
-                graph = load_graph_from_files(graph_files, from_to_ids, has_title=True, cutoff=0.0)
-            results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-            args = (graph, results_file, 0., [10., 10., 10.])
-            args_dict = {'assess': False, 'ground_truth': None, 'draw': False}
-
-        elif task == '3':
-            max_steps = 4
-            starting_points = 5  # '0_2'
-            results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-            args = (max_steps, starting_points, graph_files, from_to_ids, results_file)
-
-        elif task == '4':
-            # TODO: change this to match embedding
-            results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-            args = (graph_files, results_file, from_to_ids, num_of_groups)
-            args_dict = {param: params[param] for param in ['embedding', 'epsilon'] if param in params}
-
-        memory, runtime = memory_usage((task_func, args, args_dict), retval=True, max_iterations=1)
-        runtime_list.append(runtime)
+        memory = memory_usage((task.run, (graph_params,)), max_iterations=1)
         memory_list.append(max(memory))
-        x_list.append(graph_name.split("_")[0].replace(",", "."))
+        task.save_attributes(memory_list)
 
-    save_to_file([['x'] + x_list, [data_name] + runtime_list], destinations['runtime'])
-    save_to_file([['x'] + x_list, [data_name] + memory_list], destinations['memory'])
     if evaluate:
-        eval_task(task, data_name, params)
-    print()
+        eval(task, graphs_params)
 
 
-def eval_task(task, data_name, params, methods=None, location=None):
-    print("Evaluating task", task, 'on data', data_name)
-    func_dict = {'1': eval_task1, '2': eval_task2, '3': eval_task3, '4': eval_task4}
-    eval_func = func_dict[task]
-    if not location:
-        location = os.path.join("..",
-                                "Results",
-                                "_".join(["task", task]),
-                                "_".join(["task", task, data_name]))
 
+def eval(task, graphs_params, methods=None):
+    print("Evaluating task", task, 'on data', graphs_params[0].data_name)
+    task.clean()
     if not methods:
-        if task == '1':
-            methods = ['avg', 'winner', 'top5']
-        elif task == '2':
-            methods = ['avg_full', 'avg_all']
-        elif task == '3':
-            methods = ['avg', 'avg_norm', 'winner', 'top5']
-        elif task == '4':
-            methods = ['avg', 'avg_norm', 'winner', 'top5']
-        else:
-            raise Exception('task', task, 'not found')
+        methods = task.eval_methods
 
-    destinations = eval_destinations(location, task, data_name, methods, params)
-    # results_destination = os.path.join(location, "_".join(["task", task, data_name, "results"]))
-    if not os.path.exists(destinations['results']):
-        raise Exception("results not found")
-    results_dirs = [os.path.join(destinations['results'], results_dir) for results_dir in
-                    os.listdir(destinations['results'])]
-    if len(results_dirs) == 0:
-        raise Exception("results are empty")
-    graphs_names = ['_'.join(graph_dir.split('_')[2:-1]) for graph_dir in os.listdir(destinations['results'])]
+    # if not methods:
+    #     if task == '1':
+    #         methods = ['avg', 'winner', 'top5']
+    #     elif task == '2':
+    #         methods = ['avg_full', 'avg_all']
+    #     elif task == '3':
+    #         methods = ['avg', 'avg_norm', 'winner', 'top5']
+    #     elif task == '4':
+    #         methods = ['avg', 'avg_norm', 'winner', 'top5']
+    #     else:
+    #         raise Exception('task', task, 'not found')
+
+    # destinations = eval_destinations(task.destination, task, data_name, methods, params)
+    # # results_destination = os.path.join(location, "_".join(["task", task, data_name, "results"]))
+    # if not os.path.exists(destinations['results']):
+    #     raise Exception("results not found")
+    # results_dirs = [os.path.join(destinations['results'], results_dir) for results_dir in
+    #                 os.listdir(destinations['results'])]
+    # if len(results_dirs) == 0:
+    #     raise Exception("results are empty")
+    # graphs_names = ['_'.join(graph_dir.split('_')[2:-1]) for graph_dir in os.listdir(destinations['results'])]
+
 
     for method in methods:
-        accuracy_list = []
-        x_list = []
+        print("Evaluating task", str(task), 'on data', graphs_params[0].data_name, 'with method', method)
+        # accuracy_list = []
+        # x_list = []
         # accuracy_destination = os.path.join(location, "_".join(["task", task, data_name, method, "accuracy.csv"]))
-        for results_dir, graph_name in zip(results_dirs, graphs_names):
-            print("Evaluating graph", graph_name, "with method", method)
-            results_files = [os.path.join(results_dir, results_file) for results_file in os.listdir(results_dir)]
-            accuracy = eval_func(results_files, method, params)
-            accuracy_list.append(accuracy)
-            x_list.append(graph_name.split("_")[0].replace(",", "."))
-        save_to_file([['x'] + x_list, [data_name] + accuracy_list], destinations[method])
+        task.clean()
+        for graph_params in graphs_params:
+            # print("Evaluating graph", graph_name, "with method", method)
+            # results_files = [os.path.join(results_dir, results_file) for results_file in os.listdir(results_dir)]
+            task.eval(graph_params, method)
+        task.save_eval(method)
 
+def run_task(task_num, data_name, results_root, task_params, evaluate=True):
+    if task_num == '1':
+        task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+    elif task_num == '2':
+        task = MultipartiteCommunityDetectionTask(results_root, task_params=task_params)
+    elif task_num == '3':
+        task = PathwayProbabilitiesCalculationTask(results_root, task_params=task_params)
+    elif task_num == '4':
+        task = ProbabilitiesUsingEmbeddingsTask(results_root, task_params=task_params)
+    else:
+        raise Exception("task_num need to be between 1 and 4")
+    graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+    run(task=task, graphs_params=graphs_params, evaluate=evaluate)
 
 if __name__ == '__main__':
     # FOR ACCURATE RUNTIME, ALWAYS RUN ON NORMAL, NOT DEBUG!
+    random.seed(0)
+    np.random.seed(0)
+    if 'Code' not in os.listdir(os.getcwd()):
+        raise Exception("Bad pathing, use the command os.chdir() to make sure you work on Magnet directory")
     start = time.time()
-    np.random.seed(42)
+
+    # Long version run:
+    #
+    # results_root = "Results"
+    # task_params = {'num_of_groups': 3}
+    # data_name = 'false_mass'
+    # task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+    # graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+    # run(task=task, graphs_params=graphs_params)
+
+
+
 
     # examples for 2 groups:
-    # run_task(task="1", data_name="test", params={'num_of_groups': 2})
-    # run_task(task="2", data_name="test", params={'num_of_groups': 2})
-    # run_task(task="3", data_name="test", params={'num_of_groups': 2})
-    # run_task(task='4', data_name='test', params={'num_of_groups': 2, 'embedding': 'node2vec'})
-    # run_task(task='4', data_name='test', params={'num_of_groups': 2, 'embedding': 'ogre', 'epsilon': 0.1})
+    # run_task(task_num="1", data_name="test", results_root='Results', task_params={'num_of_groups': 2})
+    # run_task(task_num="2", data_name="test", results_root='Results', task_params={'num_of_groups': 2})
+    # run_task(task_num="3", data_name="test", results_root='Results', task_params={'num_of_groups': 2})
+    # run_task(task_num='4', data_name='test', results_root='Results', task_params={'num_of_groups': 2, 'embedding': 'node2vec'})
+    # run_task(task_num='4', data_name='test', results_root='Results', task_params={'num_of_groups': 2, 'embedding': 'ogre', 'epsilon': 0.1})
 
     # examples for 3 groups:
-    # run_task(task="1", data_name="removed_nodes", params={'num_of_groups': 3})
-    # run_task(task="2", data_name="removed_nodes", params={'num_of_groups': 3})
-    # run_task(task="3", data_name="removed_nodes", params={'num_of_groups': 3})
-    # run_task(task='4', data_name='removed_nodes', params={'num_of_groups': 3, 'embedding': 'node2vec'})
-    # run_task(task='4', data_name='removed_nodes', params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
+    run_task(task_num="1", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
+    run_task(task_num="2", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
+    run_task(task_num="3", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
+    run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'node2vec'})
+    run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
 
 
     # plot_all_results()

@@ -270,28 +270,36 @@ def task1(file_names, first_stage_saving_paths, first_stage_params):
     # plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
     return end-start
 
-def eval_task1(results_files, method, params):
-    files_scores = []
-    for file in results_files:
-        with open(file, "r", newline='') as csvfile:
-            probs = {}
-            datareader = csv.reader(csvfile)
-            next(datareader, None)  # skip the headers
-            for edge in datareader:
-                probs[edge[0]] = probs.get(edge[0], {})
-                probs[edge[0]][edge[1]] = float(edge[2])
-            for key, value in probs.items():
-                probs[key] = dict(sorted(value.items(), key=lambda item: item[1], reverse=True))
+def eval_task1(results_files, gt_file, method, params):
+    num_of_groups = params['num_of_groups']
+    if not gt_file:
+        files_scores = []
+        for file in results_files:
+            with open(file, "r", newline='') as csvfile:
+                probs = {}
+                datareader = csv.reader(csvfile)
+                next(datareader, None)  # skip the headers
+                for edge in datareader:
+                    probs[edge[0]] = probs.get(edge[0], {})
+                    probs[edge[0]][edge[1]] = float(edge[2])
+                for key, value in probs.items():
+                    probs[key] = dict(sorted(value.items(), key=lambda item: item[1], reverse=True))
 
-            if method == 'avg':
-                scores = [neighbors.get(node, 0) for node, neighbors in probs.items()]
-            elif method == 'winner':
-                scores = [1 if node == list(neighbors.keys())[0] else 0 for node, neighbors in probs.items()]
-            elif method == 'top5':
-                scores = [1 if node in list(neighbors.keys())[:5] else 0 for node, neighbors in probs.items()]
-            else:
-                raise Exception('method', method,'not found!')
-            files_scores.append(np.mean(scores))
+                if method == 'avg':
+                    scores = [neighbors.get(node, 0) for node, neighbors in probs.items()]
+                elif method == 'winner':
+                    scores = [1 if node == list(neighbors.keys())[0] else 0 for node, neighbors in probs.items()]
+                elif method == 'top5':
+                    scores = [1 if node in list(neighbors.keys())[:5] else 0 for node, neighbors in probs.items()]
+                else:
+                    raise Exception('method', method,'not found!')
+                files_scores.append(np.mean(scores))
+    else:
+        with open(gt_file, "r", newline='') as csvfile:
+            gt = list(csv.reader(csvfile))
+            print()
+
+
     return 100 * np.mean(files_scores)
 
 

@@ -46,7 +46,7 @@ def load_graph(path, name, is_weighted):
 
 
 def calculate_static_embeddings(datasets_path, embeddings_path, dict_dataset, methods, initial_methods, params_dict,
-                                from_files=False, save_=False, only_initial=False):
+                                from_to_ids, from_files=False, save_=False, only_initial=False):
     """
     Function to calculate static embedding, both by ours and state-of-the-art methods.
     :param datasets_path: Path to where the datasets are
@@ -73,8 +73,8 @@ def calculate_static_embeddings(datasets_path, embeddings_path, dict_dataset, me
     epsilon = dict_dataset["epsilon"]
     file_tags = dict_dataset["label_file"]
 
-    from MultipartiteCommunityDetection.code.run_louvain import load_graph_from_files
-    G = load_graph_from_files(datasets_path, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 0), (0, 2)], has_title=True, cutoff=0.0)
+    from MultipartiteCommunityDetection.run_louvain import load_graph_from_files
+    G = load_graph_from_files(datasets_path, from_to_ids, has_title=True, cutoff=0.0)
 
     if from_files is False:
 
@@ -154,7 +154,7 @@ def export_time(z, name):
         for data in list_dicts:
             writer.writerow(data)
 
-def ogre_static_embeddings(graph_file_names, epsilon):
+def ogre_static_embeddings(graph_file_names, from_to_ids, epsilon):
     DATASET = {"name": "Test", "initial_size": 100, "dim": 128, "is_weighted": True, "choose": "degrees",
                "regu_val": 0, "weighted_reg": False, "s_a": True, "epsilon": epsilon,
                "label_file": os.path.join("..", "labels", "cora_tags.txt")}
@@ -181,9 +181,8 @@ def ogre_static_embeddings(graph_file_names, epsilon):
     save_ = False
 
     # calculate dict of embeddings
-    return calculate_static_embeddings(graph_file_names, embeddings_path_, DATASET,
-                                                                              methods_, initial_methods_, params_dict_,
-                                                                              from_files=from_files, save_=save_)
+    return calculate_static_embeddings(graph_file_names, embeddings_path_, DATASET, methods_, initial_methods_,
+                                       params_dict_, from_to_ids, from_files=from_files, save_=save_)
 
 
 def main():
