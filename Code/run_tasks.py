@@ -60,22 +60,6 @@ def get_graphs_params(task, results_root, data_name):
     return graphs_params_sorted
 
 
-# def task_destinations(destination, task, data_name, params):
-#     destinations = {}
-#     string_list = ["task", str(task), data_name, params.get('embedding')]
-#     string_list = [string for string in string_list if string]
-#     destinations['results'] = SEP.join(destination, "_".join(string_list + ["results"]))
-#     destinations['runtime'] = SEP.join(destination, "_".join(string_list + ["runtime.csv"]))
-#     destinations['memory'] = SEP.join(destination, "_".join(string_list + ["memory.csv"]))
-#     return destinations
-
-# def save_to_file(lines_list, path):
-#     with open(path, 'w', newline='') as file:
-#         wr = csv.writer(file)
-#         for line in lines_list:
-#             wr.writerow(line)
-
-
 def plot_graph(data_paths, colors, x_label, y_label, save_path=None, my_labels=None, title=''):
     x_list, y_list, labels = [], [], []
     for path in data_paths:
@@ -224,17 +208,6 @@ def plot_all_results():
 
 
 
-
-
-# def eval_destinations(destination, task, data_name, methods, params):
-#     destinations = {}
-#     string_list = ["task", task, data_name, params.get('embedding')]
-#     string_list = [string for string in string_list if string]
-#     destinations['results'] = SEP.join([destination, "_".join(string_list + ["results"])])
-#     for method in methods:
-#         destinations[method] = SEP.join([destination, "_".join(string_list + [method, "accuracy.csv"])])
-#     return destinations
-
 def create_from_to_ids(num_of_groups):
     # this function create something like this: [(0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1)]
     from_to_ids = []
@@ -247,7 +220,7 @@ def create_from_to_ids(num_of_groups):
 
 
 
-def run(task, graphs_params, evaluate=True):
+def run(task, graphs_params, evaluate=True, methods=None):
     print("Running task", task, 'on data', graphs_params[0].data_name, 'with params', task.task_params)
     task.clean()
     memory_list = []
@@ -256,46 +229,17 @@ def run(task, graphs_params, evaluate=True):
         #     continue
         # print("TESTING MODE!!")
 
-        # if task == '1':
-        #     graphs_params = {"rho_0": 0.3, "rho_1": 0.6, "epsilon": 1e-2}
-        #     results_files = [os.path.join(results_dir, file_name) for file_name in os.listdir(graph_path)]
-        #     args = (graph_files, results_files, graphs_params)
-        #
-        # elif task == '2':
-        #     # TODO: make it more pretty
-        #     if lol:
-        #         graph = MultipartiteLol()
-        #         graph.convert_with_csv(graph_files, from_to_ids)
-        #         graph.set_nodes_type_dict()
-        #     else:
-        #         graph = load_graph_from_files(graph_files, from_to_ids, has_title=True, cutoff=0.0)
-        #     results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-        #     args = (graph, results_file, 0., [10., 10., 10.])
-        #     args_dict = {'assess': False, 'ground_truth': None, 'draw': False}
-        #
-        # elif task == '3':
-        #     max_steps = 4
-        #     starting_points = 5  # '0_2'
-        #     results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-        #     args = (max_steps, starting_points, graph_files, from_to_ids, results_file)
-        #
-        # elif task == '4':
-        #     # TODO: change this to match embedding
-        #     results_file = os.path.join(results_dir, "_".join(["task", task, graph_name, "results"]) + '.csv')
-        #     args = (graph_files, results_file, from_to_ids, num_of_groups)
-        #     args_dict = {param: graphs_params[param] for param in ['embedding', 'epsilon'] if param in graphs_params}
-
         memory = memory_usage((task.run, (graph_params,)), max_iterations=1)
         memory_list.append(max(memory))
         task.save_attributes(memory_list)
 
     if evaluate:
-        eval(task, graphs_params)
+        eval(task, graphs_params, methods)
 
 
 
 def eval(task, graphs_params, methods=None):
-    print("Evaluating task", task, 'on data', graphs_params[0].data_name)
+    # print("Evaluating task", task, 'on data', graphs_params[0].data_name)
     task.clean()
     if not methods:
         methods = task.eval_methods
@@ -334,6 +278,7 @@ def eval(task, graphs_params, methods=None):
             # results_files = [os.path.join(results_dir, results_file) for results_file in os.listdir(results_dir)]
             task.eval(graph_params, method)
         task.save_eval(method)
+        print("Scores:", task.scores, "Best:", max(task.scores))
 
 def run_task(task_num, data_name, results_root, task_params, evaluate=True):
     if task_num == '1':
@@ -357,18 +302,26 @@ if __name__ == '__main__':
         raise Exception("Bad pathing, use the command os.chdir() to make sure you work on Magnet directory")
     start = time.time()
 
-    # Long version run:
+    # Data names: false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy
     #
-    # results_root = "Results"
-    # task_params = {'num_of_groups': 3}
-    # data_name = 'false_mass'
-    # task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
-    # graphs_params = get_graphs_params(task, results_root, data_name=data_name)
-    # run(task=task, graphs_params=graphs_params)
+    # Long version:
+    #
+
+    results_root = "Results"
+    task_params = {'num_of_groups': 2}
+    data_name = 'Abt-Buy'
+    task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+    graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+    run(task=task, graphs_params=graphs_params, evaluate=False)
+    for t in np.round(np.arange(0, 0.9, 0.1), 2):  # [0.3, 0.4, 0.5, 0.6]:
+        task_params['f1_threshold'] = t
+        task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+        graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+        eval(task=task, graphs_params=graphs_params, methods=['f1_score'])
 
 
-
-
+    # Short version:
+    #
     # examples for 2 groups:
     # run_task(task_num="1", data_name="test", results_root='Results', task_params={'num_of_groups': 2})
     # run_task(task_num="2", data_name="test", results_root='Results', task_params={'num_of_groups': 2})
@@ -377,12 +330,15 @@ if __name__ == '__main__':
     # run_task(task_num='4', data_name='test', results_root='Results', task_params={'num_of_groups': 2, 'embedding': 'ogre', 'epsilon': 0.1})
 
     # examples for 3 groups:
-    run_task(task_num="1", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
-    run_task(task_num="2", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
-    run_task(task_num="3", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
-    run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'node2vec'})
-    run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
+    # run_task(task_num="1", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
+    # run_task(task_num="2", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
+    # run_task(task_num="3", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
+    # run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'node2vec'})
+    # run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
 
 
     # plot_all_results()
     print('TOTAL TIME:', time.time() - start)
+
+    # best f1 for restaurant is 0.9541 with threshold 0.5
+    # best f1 for Abt-Buy is 0.5154 with threshold 0.1

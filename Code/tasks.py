@@ -8,6 +8,9 @@ import networkx as nx
 from BipartiteProbabilisticMatching.matching_solutions import MatchingProblem
 
 import numpy as np
+from shutil import copy
+from sklearn.metrics import f1_score
+
 
 from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import iterate_by_layers, normalize_probs_matrix, \
     top5_probs_to_csv
@@ -30,11 +33,11 @@ class Task:
         self.memory_file = None
         self.eval_files = None
         self.data_name = None
-        self.string_list = None
+        self.run_string_list = None
+        self.eval_string_list = None
         self.eval_methods = None
         self.scores = []
         self.runtimes = []
-        self.ids = []
         self.ids = []
 
         if not self.task_params:
@@ -43,11 +46,13 @@ class Task:
     def prepare(self, graph_params, eval=False):
         self.data_name = graph_params.data_name
         self.destination = SEP.join([self.results_root, "task_" + str(self), self.data_name])
-        self.string_list = [self.task_params.get('embedding')]
-        self.string_list = [string for string in self.string_list if string]
-        self.runtime_file = SEP.join([self.destination, "_".join(self.string_list + ["runtime.csv"])])
-        self.memory_file = SEP.join([self.destination, "_".join(self.string_list + ["memory.csv"])])
-        results_destination = SEP.join([self.destination, "_".join(self.string_list + ["results"])])
+        self.run_string_list = [self.task_params.get('embedding', '')]
+        self.run_string_list = [string for string in self.run_string_list if string]
+        self.eval_string_list = [self.task_params.get('embedding', ''), str(self.task_params.get('f1_threshold', ''))]
+        self.eval_string_list = [string for string in self.eval_string_list if string]
+        self.runtime_file = SEP.join([self.destination, "_".join(self.run_string_list + ["runtime.csv"])])
+        self.memory_file = SEP.join([self.destination, "_".join(self.run_string_list + ["memory.csv"])])
+        results_destination = SEP.join([self.destination, "_".join(self.run_string_list + ["results"])])
         self.results_dir = SEP.join([results_destination, "_".join([graph_params.name, "results"])])
         if not os.path.exists(self.results_dir) and not eval:
             os.makedirs(self.results_dir)
@@ -66,8 +71,11 @@ class Task:
                     'gt.csv' not in file_name]
 
     def get_eval_files(self):
-        return {method: SEP.join([self.destination, "_".join(self.string_list + [method]) + ".csv"])
+        return {method: SEP.join([self.destination, "_".join(self.eval_string_list + [method]) + ".csv"])
                 for method in self.eval_methods}
+
+    def save_gt(self, graph_params):
+        copy(graph_params.gt, self.results_dir)
 
     def save_attributes(self, memory):
         self.save_to_file([['x'] + self.ids, [self.data_name] + self.runtimes], self.runtime_file)
@@ -91,11 +99,11 @@ class Task:
 class BipartiteProbabilisticMatchingTask(Task):
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
-        self.eval_methods = ['avg_acc', 'winner_acc', 'top5_acc']
+        self.eval_methods = ['avg_acc', 'winner_acc', 'top5_acc', 'f1_score']
 
     def run(self, graph_params):
         start = time.time()
-        print("Running task",str(self), 'on graph', graph_params.name)
+        # print("Running task",str(self), 'on graph', graph_params.name)
         self.prepare(graph_params)
 
         # file_names = sys.argv[2:len(sys.argv)]
@@ -114,7 +122,8 @@ class BipartiteProbabilisticMatchingTask(Task):
         # plot_toy_graphs(file_names=file_names, name="small", graphs_directions=[(0, 1)], problem=[4, 16])
         # plot_toy_graphs(file_names=[first_saving_path_01], name="small_01", directed=True, graphs_directions=[(0, 1)], header=True, integer=False, problem=[0.18, 0.79])
         # plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
-
+        if graph_params.gt:
+            self.save_gt(graph_params)
         self.runtimes.append(time.time() - start)
 
     def eval(self, graph_params, method):
@@ -122,35 +131,49 @@ class BipartiteProbabilisticMatchingTask(Task):
         if method not in self.eval_methods:
             raise Exception('method', method, 'not found!')
         self.prepare(graph_params, eval=True)
-        if not graph_params.gt:
-            files_scores = []
-            for file in self.results_files:
-                with open(file, "r", newline='') as csvfile:
-                    probs = {}
-                    datareader = csv.reader(csvfile)
-                    next(datareader, None)  # skip the headers
-                    for edge in datareader:
-                        probs[edge[0]] = probs.get(edge[0], {})
-                        probs[edge[0]][edge[1]] = float(edge[2])
-                    for key, value in probs.items():
-                        probs[key] = dict(sorted(value.items(), key=lambda item: item[1], reverse=True))
 
-                    if method == 'avg_acc':
-                        scores = [neighbors.get(node, 0) for node, neighbors in probs.items()]
-                    elif method == 'winner_acc':
-                        scores = [1 if node == list(neighbors.keys())[0] else 0 for node, neighbors in probs.items()]
-                    elif method == 'top5_acc':
-                        scores = [1 if node in list(neighbors.keys())[:5] else 0 for node, neighbors in probs.items()]
-                    else:
-                        raise Exception('method'+ method+ 'not found!')
-                    files_scores.append(np.mean(scores))
-            score = 100 * np.mean(files_scores)
-        else:
-            with open(graph_params.gt, "r", newline='') as csvfile:
-                gt = list(csv.reader(csvfile))
-                print()
-            score = 0
-        self.scores.append(score)
+        f1_threshold = self.task_params.get('f1_threshold', 0.5)
+        files_scores = []
+        for file, from_to_id in zip(self.results_files, graph_params.from_to_ids):
+            with open(file, "r", newline='') as csvfile:
+                probs = {}
+                datareader = csv.reader(csvfile)
+                next(datareader, None)  # skip the headers
+                for edge in datareader:
+                    probs[edge[0]] = probs.get(edge[0], {})
+                    probs[edge[0]][edge[1]] = float(edge[2])
+                for key, value in probs.items():
+                    probs[key] = dict(sorted(value.items(), key=lambda item: item[1], reverse=True))
+
+                gt_list = [(i, i) for i in probs.keys()]
+                if graph_params.gt:
+                    with open(graph_params.gt, "r", newline='') as csvfile:
+                        file_data = list(csv.reader(csvfile))
+                        gt_list = [(row[from_to_id[0]], row[from_to_id[1]]) for row in file_data]
+                gt = {a: b for a, b in gt_list}
+
+
+                if method == 'avg_acc':
+                    scores = [neighbors.get(gt.get(node, '-1'), 0) for node, neighbors in probs.items()]
+                    score = np.mean(scores)
+                elif method == 'winner_acc':
+                    scores = [1 if gt.get(node, '-1') == list(neighbors.keys())[0] else 0 for node, neighbors in probs.items()]
+                    score = np.mean(scores)
+                elif method == 'top5_acc':
+                    scores = [1 if gt.get(node, '-1') in list(neighbors.keys())[:5] else 0 for node, neighbors in probs.items()]
+                    score = np.mean(scores)
+                elif method == 'f1_score':
+                    # pred_test = [(node, list(neighbors.keys())[0]) for node, neighbors in probs.items()]
+                    pred = [(node, list(neighbors.keys())[0]) for node, neighbors in probs.items() if list(neighbors.values())[0] > f1_threshold]
+                    all = set(gt_list + pred)
+                    y_true = [int(a in gt_list) for a in all]
+                    y_pred = [int(a in pred) for a in all]
+                    score = f1_score(y_true, y_pred)
+                else:
+                    raise Exception('method'+ method+ 'not found!')
+                files_scores.append(score)
+        final_score = round(np.mean(files_scores), 3)
+        self.scores.append(final_score)
 
 
     def __str__(self):
@@ -181,10 +204,11 @@ class MultipartiteCommunityDetectionTask(Task):
         else:
             graph = load_graph_from_files(graph_params.files, graph_params.from_to_ids, has_title=True, cutoff=0.0)
 
+        num_of_groups = self.task_params.get('num_of_groups', 3)
         params = {"graph": graph,
                   "dump_name": self.results_files[0],
                   "res": self.task_params.get("res", 0.),
-                  "beta": self.task_params.get("beta", [10., 10., 10.]),
+                  "beta": self.task_params.get("beta", [10.] * num_of_groups),
                   "assess": self.task_params.get("assess", False),
                   "ground_truth": self.task_params.get("ground_truth", None),
                   "draw": self.task_params.get("draw", False)}
