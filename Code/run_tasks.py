@@ -53,6 +53,9 @@ def get_graphs_params(task, results_root, data_name):
         graph_files = [SEP.join([graph_path, file_name]) for file_name in os.listdir(graph_path) if 'gt.csv' not in file_name]
         gt_file = [SEP.join([graph_path, file_name]) for file_name in os.listdir(graph_path) if 'gt.csv' in file_name]
         num_of_groups = task.task_params.get('num_of_groups', 3)
+        if '1' in str(task) and len(graph_files) != num_of_groups * (num_of_groups - 1) / 2 or \
+           '1' not in str(task) and len(graph_files) != num_of_groups * (num_of_groups - 1):
+            raise Exception("num_of_groups seems to be wrong")
         from_to_ids = create_from_to_ids(num_of_groups)
         params = Params(data_name, graph_name, graph_id, graph_path, graph_files, gt_file, num_of_groups, from_to_ids)
         graphs_params.append(params)
@@ -239,7 +242,7 @@ def run(task, graphs_params, evaluate=True, methods=None):
 
 
 def eval(task, graphs_params, methods=None):
-    # print("Evaluating task", task, 'on data', graphs_params[0].data_name)
+    print("Evaluating task", task, 'on data', graphs_params[0].data_name, 'with params', task.task_params)
     task.clean()
     if not methods:
         methods = task.eval_methods
@@ -268,7 +271,7 @@ def eval(task, graphs_params, methods=None):
 
 
     for method in methods:
-        print("Evaluating task", str(task), 'on data', graphs_params[0].data_name, 'with method', method)
+        print('Method:', method)
         # accuracy_list = []
         # x_list = []
         # accuracy_destination = os.path.join(location, "_".join(["task", task, data_name, method, "accuracy.csv"]))
@@ -302,20 +305,21 @@ if __name__ == '__main__':
         raise Exception("Bad pathing, use the command os.chdir() to make sure you work on Magnet directory")
     start = time.time()
 
-    # Data names: false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy
+    # Data names: [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy]
     #
     # Long version:
     #
 
     results_root = "Results"
-    task_params = {'num_of_groups': 2}
+    task_params = {'num_of_groups': 2, 'starting_points': 10000}
     data_name = 'Abt-Buy'
-    task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+    task = PathwayProbabilitiesCalculationTask(results_root, task_params=task_params)
     graphs_params = get_graphs_params(task, results_root, data_name=data_name)
     run(task=task, graphs_params=graphs_params, evaluate=False)
-    for t in np.round(np.arange(0, 0.9, 0.1), 2):  # [0.3, 0.4, 0.5, 0.6]:
+    # eval(task=task, graphs_params=graphs_params)
+    for t in np.round(np.arange(0, 0.9, 0.01), 2):  # [0.3, 0.4, 0.5, 0.6]:
         task_params['f1_threshold'] = t
-        task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+        task.task_params = task_params
         graphs_params = get_graphs_params(task, results_root, data_name=data_name)
         eval(task=task, graphs_params=graphs_params, methods=['f1_score'])
 
