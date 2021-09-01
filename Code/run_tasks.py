@@ -221,7 +221,48 @@ def create_from_to_ids(num_of_groups):
                 from_to_ids.append((j, i))
     return from_to_ids
 
+def grid_search(data_name):
 
+    # Data names: [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy]
+    #
+    # Long version:
+    #
+    best_score = 0
+    best_params = None
+    results_root = "Results"
+    for rho_0 in np.round(np.arange(0.8, 1, 0.02), 2):
+        for rho_1 in np.round(np.arange(0.0, np.round(1 - rho_0, 2), 0.02), 2):
+            for epsilon in np.round(np.arange(0.01, 0.021, 0.005), 3):
+
+                task_params = {'num_of_groups': 2, 'rho_0': rho_0, 'rho_1': rho_1, 'epsilon': epsilon}
+                # task_params = {'num_of_groups': 3, 'starting_points': 10000}
+                task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
+                graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+                run(task=task, graphs_params=graphs_params, evaluate=False)
+                # eval(task=task, graphs_params=graphs_params)
+                for t in np.round(np.arange(0, 0.3, 0.01), 2):  # [0.3, 0.4, 0.5, 0.6]:
+                    task_params['f1_threshold'] = t
+                    task.task_params = task_params
+                    graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+                    eval(task=task, graphs_params=graphs_params, methods=['f1_score'])
+                    if max(task.scores) > best_score:
+                        best_score = max(task.scores)
+                        best_params = task_params.copy()
+                        print("New best score!")
+                        task.save_best('f1_score')
+                print('best_score:', best_score)
+                print('best_params:', best_params)
+    task = BipartiteProbabilisticMatchingTask(results_root, task_params=best_params)
+    graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+    run(task=task, graphs_params=graphs_params, evaluate=True)
+
+
+def full_run():
+    for data_name in ['Amazon-Google', 'DBLP-ACM', 'DBLP-GoogleScholar', 'Fodors-Zagats']:
+        grid_search(data_name)
+        run_task(task_num="2", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
+        run_task(task_num="3", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
+        run_task(task_num='4', data_name=data_name, results_root="Results", task_params={'num_of_groups': 2, 'embedding': 'node2vec'})
 
 def run(task, graphs_params, evaluate=True, methods=None):
     print("Running task", task, 'on data', graphs_params[0].data_name, 'with params', task.task_params)
@@ -242,7 +283,7 @@ def run(task, graphs_params, evaluate=True, methods=None):
 
 
 def eval(task, graphs_params, methods=None):
-    print("Evaluating task", task, 'on data', graphs_params[0].data_name, 'with params', task.task_params)
+    # print("Evaluating task", task, 'on data', graphs_params[0].data_name, 'with params', task.task_params)
     task.clean()
     if not methods:
         methods = task.eval_methods
@@ -283,6 +324,7 @@ def eval(task, graphs_params, methods=None):
         task.save_eval(method)
         print("Scores:", task.scores, "Best:", max(task.scores))
 
+
 def run_task(task_num, data_name, results_root, task_params, evaluate=True):
     if task_num == '1':
         task = BipartiteProbabilisticMatchingTask(results_root, task_params=task_params)
@@ -305,23 +347,29 @@ if __name__ == '__main__':
         raise Exception("Bad pathing, use the command os.chdir() to make sure you work on Magnet directory")
     start = time.time()
 
+
+
+    # grid_search()
+    # full_run()
     # Data names: [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy]
     #
     # Long version:
     #
-
     results_root = "Results"
-    task_params = {'num_of_groups': 2, 'starting_points': 10000}
+    # task_params = {'num_of_groups': 2, 'embedding': 'node2vec'}
+    # task_params = {'num_of_groups': 3}
+    # task_params = {'num_of_groups': 2, 'rho_0': 0.94, 'rho_1': 0.02, 'epsilon': 0.01, 'f1_threshold': 0.0}
+    task_params = {'num_of_groups': 2}
     data_name = 'Abt-Buy'
     task = PathwayProbabilitiesCalculationTask(results_root, task_params=task_params)
     graphs_params = get_graphs_params(task, results_root, data_name=data_name)
-    run(task=task, graphs_params=graphs_params, evaluate=False)
-    # eval(task=task, graphs_params=graphs_params)
-    for t in np.round(np.arange(0, 0.9, 0.01), 2):  # [0.3, 0.4, 0.5, 0.6]:
-        task_params['f1_threshold'] = t
-        task.task_params = task_params
-        graphs_params = get_graphs_params(task, results_root, data_name=data_name)
-        eval(task=task, graphs_params=graphs_params, methods=['f1_score'])
+    run(task=task, graphs_params=graphs_params, evaluate=True)
+    eval(task=task, graphs_params=graphs_params)
+    # for t in np.round(np.arange(0, 0.0, 0.01), 2):  # [0.3, 0.4, 0.5, 0.6]:
+    #     task_params['f1_threshold'] = t
+    #     task.task_params = task_params
+    #     graphs_params = get_graphs_params(task, results_root, data_name=data_name)
+    #     eval(task=task, graphs_params=graphs_params, methods=['f1_score'])
 
 
     # Short version:
@@ -346,3 +394,6 @@ if __name__ == '__main__':
 
     # best f1 for restaurant is 0.9541 with threshold 0.5
     # best f1 for Abt-Buy is 0.5154 with threshold 0.1
+    # Abt-Buy:
+    # best_score: 0.727
+    # best_params: {'num_of_groups': 2, 'rho_0': 0.94, 'rho_1': 0.02, 'epsilon': 0.01, 'f1_threshold': 0.0}
