@@ -2,3 +2,7 @@
 __pycache__
 Results/*
 Results1/*
+!Results/data
+Results/data/*
+!Results/data/Abt-Buy
+!Results/data/restaurant

@@ -315,7 +315,7 @@ class PathwayProbabilitiesCalculationTask(Task):
         list_of_list_graph.convert_with_csv(graph_params.files, graph_params.from_to_ids)
         list_of_list_graph.set_nodes_type_dict()
         nodes = list_of_list_graph.nodes()
-        starting_points = self.task_params.get('starting_points', 999999999999999999999999999)
+        starting_points = self.task_params.get('starting_points', 5)
         limit_of_steps = self.task_params.get('limit_of_steps', 4)
         if starting_points > len(nodes):
             starting_points = len(nodes)
