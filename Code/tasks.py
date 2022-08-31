@@ -2,6 +2,7 @@ import csv
 import os
 import time
 from random import sample
+import pandas as pd
 
 import networkx as nx
 
@@ -189,6 +190,39 @@ class BipartiteProbabilisticMatchingTask(Task):
     def __str__(self):
         return '1_BipartiteProbabilisticMatching'
 
+class BipartiteProbabilisticMatchingNaiveTask(BipartiteProbabilisticMatchingTask):
+
+    def run(self, graph_params):
+        start = time.time()
+        # print("Running task",str(self), 'on graph', graph_params.name)
+        self.prepare(graph_params)
+
+        # file_names = sys.argv[2:len(sys.argv)]
+        first_stage_params = {"rho_0": self.task_params.get("rho_0", 0.3),
+                              "rho_1": self.task_params.get("rho_1", 0.6),
+                              "epsilon": self.task_params.get("epsilon", 1e-2)}
+        # first_stage_saving_paths = [os.path.join("..", "BipartiteProbabilisticMatching", "results",
+        #                                          "yoram_network_1",
+        #                                          f"yoram_network_1_graph_{g}.csv") for g in range(1, 4)]
+        for graph_path, first_saving_path in zip(graph_params.files, self.results_files):
+            first_saving_path_01 = first_saving_path[:-4] + "_01" + first_saving_path[-4:]
+            first_saving_path_10 = first_saving_path[:-4] + "_10" + first_saving_path[-4:]
+            MatchingProblem(graph_path, "null_model", first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
+            MatchingProblem(graph_path, "null_model", first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
+
+        # plot_toy_graphs(file_names=file_names, name="small", graphs_directions=[(0, 1)], problem=[4, 16])
+        # plot_toy_graphs(file_names=[first_saving_path_01], name="small_01", directed=True, graphs_directions=[(0, 1)], header=True, integer=False, problem=[0.18, 0.79])
+        # plot_toy_graphs(file_names=[first_saving_path_10], name="small_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.84, 0.17])
+        if graph_params.gt:
+            self.save_gt(graph_params)
+        self.runtimes.append(time.time() - start)
+
+    # def eval(self, graph_params, method):
+    #     pass
+
+    def __str__(self):
+        return '1_BipartiteProbabilisticMatchingNaive'
+
 
 class MultipartiteCommunityDetectionTask(Task):
     def __init__(self, results_root='.', task_params=None):
@@ -217,7 +251,7 @@ class MultipartiteCommunityDetectionTask(Task):
         num_of_groups = self.task_params.get('num_of_groups', 3)
         params = {"graph": graph,
                   "dump_name": self.results_files[0],
-                  "res": self.task_params.get("res", 0.),
+                  "res": self.task_params.get("res", 1.),
                   "beta": self.task_params.get("beta", [10.] * num_of_groups),
                   "assess": self.task_params.get("assess", False),
                   "ground_truth": self.task_params.get("ground_truth", None),
@@ -315,7 +349,7 @@ class PathwayProbabilitiesCalculationTask(Task):
         list_of_list_graph.convert_with_csv(graph_params.files, graph_params.from_to_ids)
         list_of_list_graph.set_nodes_type_dict()
         nodes = list_of_list_graph.nodes()
-        starting_points = self.task_params.get('starting_points', 5)
+        starting_points = self.task_params.get('starting_points', 999999999999999999999999999)
         limit_of_steps = self.task_params.get('limit_of_steps', 4)
         if starting_points > len(nodes):
             starting_points = len(nodes)

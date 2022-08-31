@@ -2,7 +2,10 @@
 __pycache__
 Results/*
 Results1/*
+Results_old1/
+Results_old3/
 !Results/data
 Results/data/*
 !Results/data/Abt-Buy
 !Results/data/restaurant
+Code/compare_algorithm.py

@@ -101,6 +101,8 @@ class MatchingProblem:
             from BipartiteProbabilisticMatching.flow_analytic import algorithm
         elif algorithm == "flow_numeric":
             from BipartiteProbabilisticMatching.flow_numeric import algorithm
+        elif algorithm == "null_model":
+            from BipartiteProbabilisticMatching.null_model import algorithm
         p = algorithm(self, params, is_normalized=is_normalized)
         return p
 

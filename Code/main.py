@@ -2,8 +2,6 @@ import argparse
 import os
 from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3
 from PathwayProbabilitiesCalculation.probabilities_using_embeddings import task4
-import matplotlib.pyplot as plt
-import matplotlib
 from BipartiteProbabilisticMatching.matching_solutions import MatchingProblem, task1, eval_task1
 
 import time

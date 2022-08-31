@@ -6,10 +6,11 @@ p_ij = 1 / (number of maxima).
 """
 
 import numpy as np
-from matching_solutions import MatchingProblem
+
+from BipartiteProbabilisticMatching.matching_solutions import MatchingProblem
 
 
-def algorithm(mp: MatchingProblem, params=None):
+def algorithm(mp: MatchingProblem, params=None, is_normalized=None):
     """
     The implementation of the null model algorithm.
     :param mp: The main class containing the graph and its biadjacency matrix, on which we want to apply the algorithm.

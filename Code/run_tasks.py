@@ -5,12 +5,14 @@ import sys
 
 from Code.graphs import Params
 from Code.tasks import BipartiteProbabilisticMatchingTask, MultipartiteCommunityDetectionTask, \
-    PathwayProbabilitiesCalculationTask, ProbabilitiesUsingEmbeddingsTask
+    PathwayProbabilitiesCalculationTask, ProbabilitiesUsingEmbeddingsTask, BipartiteProbabilisticMatchingNaiveTask
 
 sys.path.append(os.path.abspath('..'))
 from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3, eval_task3
 from PathwayProbabilitiesCalculation.probabilities_using_embeddings import task4, eval_task4
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 from BipartiteProbabilisticMatching.matching_solutions import task1, eval_task1
 
 import numpy as np
@@ -63,27 +65,39 @@ def get_graphs_params(task, results_root, data_name):
     return graphs_params_sorted
 
 
-def plot_graph(data_paths, colors, x_label, y_label, save_path=None, my_labels=None, title=''):
-    x_list, y_list, labels = [], [], []
+def plot_graph(data_paths, colors, x_label, y_label, log=False, save_path=None, my_labels=None, title='', axis=None):
+    if axis:
+        plt = axis
+    x_list, y_list = [], []
     for path in data_paths:
         with open(path, 'r', newline='') as file:
             data = list(csv.reader(file))
             x_list.append([float(i) for i in data[0][1:]])
             y_list.append([float(i) for i in data[1][1:]])
-            labels.append(data[1][0])
+            # labels.append(data[1][0])
     if my_labels:
         labels = my_labels
     for x, y, color, label in zip(x_list, y_list, colors, labels):
         x, y = zip(*sorted(zip(x, y)))
-        plt.plot(x, y, "-ok", color=color, label=label)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
+        plt.plot(x, y, "-o", color=color, label=label)
+    if x_label:
+        plt.set_xlabel(x_label) if axis else plt.xlabel(x_label)
+    if y_label:
+        plt.set_ylabel(y_label) if axis else plt.ylabel(y_label)
     # plt.xticks(np.arange(0.0, 0.6, 0.1))
     # plt.xscale('log')
-    if y_label != 'Accuracy':
-        plt.yscale('log')
-    plt.title(title)
+    if log:
+        plt.set_yscale('log') if axis else plt.yscale('log')
+        # plt.yaxis.set_minor_formatter(mticker.ScalarFormatter())
+        # plt.yaxis.set_major_formatter(mticker.ScalarFormatter())
+    plt.tick_params(axis="x", labelsize=8, which='both')
+    plt.tick_params(axis="y", labelsize=8, which='both')
+    plt.set_title(title, fontsize=13) if axis else plt.title(title, fontsize=20)
     plt.grid(True, linestyle='--', which="both")
+    # matplotlib.rcParams.update({'font.size': 100})
+    # matplotlib.rc('xtick', labelsize=50)
+    if axis:
+        return
     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.tight_layout()
     if save_path is not None:
@@ -92,23 +106,28 @@ def plot_graph(data_paths, colors, x_label, y_label, save_path=None, my_labels=N
     plt.clf()
 
 
-def plot_results(results, colors, x_label, y_label, graph_name, labels=None, title=''):
+def plot_results(results, colors, x_label, y_label, graph_name, labels=None, title='', axis=None, log=False):
     paths = []
+    task_names = {'1': 'task_1_BipartiteProbabilisticMatching',
+                  '2': 'task_2_MultipartiteCommunityDetection',
+                  '3': 'task_3_PathwayProbabilitiesCalculation',
+                  '4': 'task_4_ProbabilitiesUsingEmbeddings'}
     for result in results:
-        path = SEP.join(["..",
-                            "Results",
-                            "_".join(["task", result["task"]]),
-                            "_".join(["task", result["task"], result["name"]]),
-                            "_".join(["task", result["task"], result["name"], result["graph"]]) + '.csv'])
+        path = SEP.join(["Results", task_names[result["task"]], result["name"], result["graph"] + '.csv'])
         paths.append(path)
-    save_path = SEP.join(["..", "Results", graph_name + ".png"])
-    plot_graph(paths, colors, x_label=x_label, y_label=y_label, save_path=save_path, my_labels=labels, title=title)
+    save_path = SEP.join(["Results", graph_name + ".png"])
+    plot_graph(paths, colors, log=log, x_label=x_label, y_label=y_label, save_path=save_path, my_labels=labels, title=title, axis=axis)
     # plot_graph(paths, colors, x_label="Fraction", y_label="Running Time[s]", save_path=save_path)
     # plot_graph([memory_destination], ["blue"], x_label="Fraction", y_label="Memory Usage[Mb]",
     #            save_path=memory_destination[:-4] + ".png")
 
 
-def plot_all_results():
+
+
+def plot_all_results1():
+    print(f"Plotting Results! os.getcwd(): {os.getcwd()}")
+    # [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt - Buy]
+    # [avg_acc, f1_score, memory, runtime, top5_acc, winner_acc, best_f1]
     # plot_graph(runtime_destination, ["blue"], x_label="Fraction", y_label="Running Time[s]",
     #            save_path=runtime_destination[:-4] + ".png")
     # plot_graph(memory_destination, ["blue"], x_label="Fraction", y_label="Memory Usage[Mb]",
@@ -116,29 +135,32 @@ def plot_all_results():
     # runtime_destination = '..\\Results\\task_1\\task_1_false_mass\\task_1_false_mass_runtime.csv'
     # memory_destination = '..\\Results\\task_1\\task_1_false_mass\\task_1_false_mass_memory.csv'
 
-    results = [{'task': '3', 'name': 'false_mass', 'graph': 'avg_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_avg_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'ogre_avg_accuracy'}]
-    plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_avg_accuracy',
-                 ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass avg accuracy')
+    results = [{'task': '1', 'name': 'false_mass', 'graph': 'winner_acc'},
+               {'task': '1', 'name': 'noisy_edges', 'graph': 'winner_acc'},
+               {'task': '1', 'name': 'removed_nodes', 'graph': 'winner_acc'}]
+    plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_1_winner_accuracy',
+                 ['False Mass', 'Noisy Edges', 'Removed Nodes'], '')
 
-    results = [{'task': '3', 'name': 'false_mass', 'graph': 'avg_norm_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_avg_norm_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'ogre_avg_norm_accuracy'}]
-    plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_avg_norm_accuracy',
-                 ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass avg norm accuracy')
 
-    results = [{'task': '3', 'name': 'false_mass', 'graph': 'winner_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_winner_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'ogre_winner_accuracy'}]
-    plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_winner_accuracy',
-                 ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass winner accuracy')
 
-    results = [{'task': '3', 'name': 'false_mass', 'graph': 'top5_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_top5_accuracy'},
-               {'task': '4', 'name': 'false_mass', 'graph': 'ogre_top5_accuracy'}]
-    plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_top5_accuracy',
-                 ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass top-5 accuracy')
+
+    # results = [{'task': '3', 'name': 'false_mass', 'graph': 'avg_norm_accuracy'},
+    #            {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_avg_norm_accuracy'},
+    #            {'task': '4', 'name': 'false_mass', 'graph': 'ogre_avg_norm_accuracy'}]
+    # plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_avg_norm_accuracy',
+    #              ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass avg norm accuracy')
+    #
+    # results = [{'task': '3', 'name': 'false_mass', 'graph': 'winner_accuracy'},
+    #            {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_winner_accuracy'},
+    #            {'task': '4', 'name': 'false_mass', 'graph': 'ogre_winner_accuracy'}]
+    # plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_winner_accuracy',
+    #              ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass winner accuracy')
+    #
+    # results = [{'task': '3', 'name': 'false_mass', 'graph': 'top5_accuracy'},
+    #            {'task': '4', 'name': 'false_mass', 'graph': 'node2vec_top5_accuracy'},
+    #            {'task': '4', 'name': 'false_mass', 'graph': 'ogre_top5_accuracy'}]
+    # plot_results(results, ['blue', 'red', 'black'], 'Fraction', 'Accuracy', 'tasks_3_vs_4_false_mass_top5_accuracy',
+    #              ['task 3', 'task 4 node2vec', 'task 4 OGRE'], 'Tasks 3 vs 4 false_mass top-5 accuracy')
 
     # ---
     # results = [{'task': '3', 'name': 'nodes', 'graph': 'avg_accuracy'},
@@ -209,8 +231,63 @@ def plot_all_results():
     # colors = ['blue']
     # plot_results(results, colors, 'Fraction', 'Memory Usage[Mb]', 'task_1_false_mass_memory')
 
+def plot_all_results():
+    print(f"Plotting Results! os.getcwd(): {os.getcwd()}")
+    datasets = [#{'name': 'nodes', 'x_label': 'Vertices'},
+                #{'name': 'noisy_edges', 'x_label': 'Fraction'},
+                #{'name': 'false_mass', 'x_label': 'Fraction'},
+                {'name': 'removed_nodes', 'x_label': 'Fraction', 'title': 'Number of Vertices'},
+                {'name': 'removed_nodes', 'x_label': 'Fraction', 'title': 'Noisy Edges'},
+                {'name': 'removed_nodes', 'x_label': 'Fraction', 'title': 'False Mass'},
+                {'name': 'removed_nodes', 'x_label': 'Fraction', 'title': 'Removed Real Vertices'}]
+    # tasks = [{'task': '3', 'acc': 'avg_acc'},
+    #          {'task': '3', 'acc': 'avg_acc'},
+    #          {'task': '3', 'acc': 'avg_acc'},
+    #          {'task': '3', 'acc': 'avg_acc'}]
+    figure, axis = plt.subplots(3, 4)
 
+    # matplotlib.rc('font', size=30)
+    # matplotlib.rc('axes', titlesize=30)
+    # matplotlib.rc('axes', labelsize=30)
+    # matplotlib.rc('xtick', labelsize=30)
+    # matplotlib.rc('ytick', labelsize=30)
+    # matplotlib.rc('legend', fontsize=30)
+    # axis[0, 0].rcParams.update({'font.size': 30})
+    # axis[0, 0].rcParams.update({'axes.titlesize': 30})
+    # axis[0, 0].rcParams.update({'axes.labelsize': 30})
+    # axis[0, 0].rcParams.update({'xtick.labelsize': 30})
+    # axis[0, 0].rcParams.update({'ytick.labelsize': 30})
+    # axis[0, 0].rcParams.update({'legend.fontsize': 30})
+    colors = ['blue', 'red', 'black', 'green']
+    for i, dataset in enumerate(datasets):
+        y_label = 'Accuracy' if i == 0 else ''
+        results = [{'task': '3', 'name': dataset['name'], 'graph': 'avg_acc'},
+                   {'task': '1', 'name': dataset['name'], 'graph': 'winner_acc'},
+                   {'task': '2', 'name': dataset['name'], 'graph': 'all_avg_acc'},
+                   {'task': '3', 'name': dataset['name'], 'graph': 'winner_acc'}]
+        plot_results(results, colors, '', y_label, f'{dataset["name"]}_accuracy',
+                     ['Greedy', 'BPM', 'MCD', 'PPC'], dataset['title'], axis[0, i])
 
+        y_label = 'Running Time [s]' if i == 0 else ''
+        results = [{'task': '3', 'name': dataset['name'], 'graph': 'runtime'},
+                   {'task': '1', 'name': dataset['name'], 'graph': 'runtime'},
+                   {'task': '2', 'name': dataset['name'], 'graph': 'runtime'},
+                   {'task': '3', 'name': dataset['name'], 'graph': 'runtime'}]
+        plot_results(results, colors, '', y_label, f'{dataset["name"]}_runtime',
+                     ['Greedy', 'BPM', 'MCD', 'PPC'], '', axis[1, i], log=True)
+
+        y_label = 'Memory [MiB]' if i == 0 else ''
+        results = [{'task': '3', 'name': dataset['name'], 'graph': 'memory'},
+                   {'task': '1', 'name': dataset['name'], 'graph': 'memory'},
+                   {'task': '2', 'name': dataset['name'], 'graph': 'memory'},
+                   {'task': '3', 'name': dataset['name'], 'graph': 'memory'}]
+        plot_results(results, colors, dataset['x_label'], y_label, f'{dataset["name"]}_memory',
+                     ['Greedy', 'BPM', 'MCD', 'PPC'], '', axis[2, i], log=True)
+    plt.legend()
+    plt.tight_layout(pad=0.4)
+    # plt.tight_layout()
+    plt.savefig(SEP.join(["Results", "results.png"]))
+    plt.show()
 def create_from_to_ids(num_of_groups):
     # this function create something like this: [(0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1)]
     from_to_ids = []
@@ -258,8 +335,12 @@ def grid_search(data_name):
 
 
 def full_run():
-    for data_name in ['Amazon-Google', 'DBLP-ACM', 'DBLP-GoogleScholar', 'Fodors-Zagats']:
-        grid_search(data_name)
+    real_graphs = ['Fodors-Zagats', 'Amazon-Google', 'DBLP-ACM', 'DBLP-GoogleScholar', 'Abt-Buy']
+    simulation_graphs = ['false_mass', 'noisy_edges', 'removed_nodes', 'nodes']
+    for data_name in real_graphs:
+        # grid_search(data_name)
+        run_task(task_num="1", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
+        raise Exception
         run_task(task_num="2", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
         run_task(task_num="3", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
         run_task(task_num='4', data_name=data_name, results_root="Results", task_params={'num_of_groups': 2, 'embedding': 'node2vec'})
@@ -352,19 +433,20 @@ if __name__ == '__main__':
     # grid_search()
     # full_run()
     # Data names: [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy]
+    # tasks: [BipartiteProbabilisticMatchingTask, BipartiteProbabilisticMatchingNaiveTask]
     #
     # Long version:
     #
     results_root = "Results"
     # task_params = {'num_of_groups': 2, 'embedding': 'node2vec'}
-    # task_params = {'num_of_groups': 3}
+    task_params = {'num_of_groups': 3}
     # task_params = {'num_of_groups': 2, 'rho_0': 0.94, 'rho_1': 0.02, 'epsilon': 0.01, 'f1_threshold': 0.0}
-    task_params = {'num_of_groups': 2}
-    data_name = 'Abt-Buy'
-    task = PathwayProbabilitiesCalculationTask(results_root, task_params=task_params)
+    # task_params = {'num_of_groups': 2}
+    data_name = 'noisy_edges'
+    task = BipartiteProbabilisticMatchingNaiveTask(results_root, task_params=task_params)
     graphs_params = get_graphs_params(task, results_root, data_name=data_name)
-    run(task=task, graphs_params=graphs_params, evaluate=True)
-    eval(task=task, graphs_params=graphs_params)
+    # run(task=task, graphs_params=graphs_params, evaluate=False)
+    # eval(task=task, graphs_params=graphs_params)
     # for t in np.round(np.arange(0, 0.0, 0.01), 2):  # [0.3, 0.4, 0.5, 0.6]:
     #     task_params['f1_threshold'] = t
     #     task.task_params = task_params
@@ -389,8 +471,12 @@ if __name__ == '__main__':
     # run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
 
 
-    # plot_all_results()
+    plot_all_results()
     print('TOTAL TIME:', time.time() - start)
+
+
+
+
 
     # best f1 for restaurant is 0.9541 with threshold 0.5
     # best f1 for Abt-Buy is 0.5154 with threshold 0.1
