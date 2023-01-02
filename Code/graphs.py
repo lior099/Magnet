@@ -19,15 +19,6 @@ class Params:
             self.gt = self.gt[0]
 
 
-    def get_graph(self):
-        return
-
-
-
-
-def graph_from_path():
-    pass
-
 
 
 

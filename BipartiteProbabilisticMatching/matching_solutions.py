@@ -9,7 +9,7 @@ import time
 import csv
 import sys
 
-
+SEP = '/'
 
 class MatchingProblem:
     algorithm_names = {
@@ -308,7 +308,7 @@ def eval_task1(results_files, gt_file, method, params):
 
 
 
-def plot_toy_graphs(graph=None, file_names=None, header=False, partition=None, name='', labels=False, directed=False, graphs_directions=None, integer=True, problem=[None, None]):
+def plot_toy_graphs(graph=None, file_names=None, header=False, partition=None, name='', labels=False, directed=False, graphs_directions=None, integer=True, problem=[None, None], edge_width=None, colored=False):
     if file_names:
         edges = []
         nodes = []
@@ -352,33 +352,47 @@ def plot_toy_graphs(graph=None, file_names=None, header=False, partition=None, n
             nodes_dict[node.split("_")[0]] = [node]
         else:
             nodes_dict[node.split("_")[0]].append(node)
-    if partition:
-        colors = {key: [all_colors[key][partition[node]] for node in nodes] for key, nodes in nodes_dict.items()}
+    if colored:
+        # colors = {key: [all_colors[key][partition[node]] for node in nodes] for key, nodes in nodes_dict.items()}
+        colors = all_colors
+
     labels = {node: node.split("_")[1] for node in nodes}
     # labels = {i: {node: node.split("_")[1] for node in nodes_dict[i]} for i in ['0', '1', '2']}
     # for i in "so^>v<dph8":
-    nodePos = nx.layout.bipartite_layout(graph, nodes_dict['0'])
-    nodePos = {node: pos[1] for pos, node in zip(nodePos.items(), nodes[::-1])}
-    plt.rcParams["figure.figsize"] = (4, 4)
+    if len(graphs_directions) == 1:
+        nodePos = nx.layout.bipartite_layout(graph, nodes_dict['0'])
+        plt.rcParams["figure.figsize"] = (4, 4)
+        nodePos = {node: pos[1] for pos, node in zip(nodePos.items(), nodes[::-1])}
+        label_size = 14
+    if len(graphs_directions) == 3:
+        nodePos = nx.layout.circular_layout(graph)
+        plt.rcParams["figure.figsize"] = (6, 6)
+        label_size = 16
     if integer:
         edges_labels = {(node1, node2): int(weight['weight']) for node1, node2, weight in graph.edges(data=True)}
     else:
         edges_labels = {(node1, node2): round(weight['weight'], 2) for node1, node2, weight in graph.edges(data=True)}
+    weights = np.array(list(edges_labels.values())) * edge_width if edge_width else 1
     edges_labels1 = {edge: weight for edge, weight in edges_labels.items() if weight not in problem}
-    edges_labels2 = {edge: weight for edge, weight in edges_labels.items() if weight == problem[0]}
-    edges_labels3 = {edge: weight for edge, weight in edges_labels.items() if weight == problem[1]}
-    nx.draw(graph, nodePos, arrowsize=20)
+    if problem:
+        edges_labels2 = {edge: weight for edge, weight in edges_labels.items() if weight == problem[0]}
+        edges_labels3 = {edge: weight for edge, weight in edges_labels.items() if weight == problem[1]}
+    # nx.draw(graph, nodePos, arrowsize=20)
     for i, node_list in nodes_dict.items():
         nx.draw_networkx_nodes(graph, nodePos, nodelist=node_list, node_shape=shapes[i], node_color=colors[i], node_size=500, edgecolors='black')
-    nx.draw_networkx_edges(graph, nodePos)
-    nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels1, label_pos=0.5)
-    nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels2, label_pos=0.4)
-    nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels3, label_pos=0.62)
-    nx.draw_networkx_labels(graph, nodePos, labels, font_size=16)
+
+    nx.draw_networkx_edges(graph, nodePos, width=weights)
+    if len(graphs_directions) == 1:
+        nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels1, label_pos=0.5)
+    if problem:
+        nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels2, label_pos=0.4)
+        nx.draw_networkx_edge_labels(graph, nodePos, edge_labels=edges_labels3, label_pos=0.62)
+    nx.draw_networkx_labels(graph, nodePos, labels, font_size=label_size)
     # plt.figure(figsize=(20, 20))
-    plt.xlim(-1.5, 1.5)
-    plt.ylim(-1.5, 1.5)
-    plt.savefig("toy_graph_"+name)
+    # plt.xlim(-1.5, 1.5)
+    # plt.ylim(-1.5, 1.5)
+    plt.axis("off")
+    plt.savefig(SEP.join(["Results", f"toy_graph_{name}.png"]))
     plt.show()
 
 

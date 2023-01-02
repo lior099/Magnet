@@ -1,4 +1,5 @@
 import csv
+import datetime
 import os
 import time
 from random import sample
@@ -36,9 +37,11 @@ class Task:
         self.run_string_list = None
         self.f1_string_list = None
         self.eval_methods = None
+        self.use_task_1_results = False
         self.scores = []
         self.runtimes = []
         self.ids = []
+
 
         if not self.task_params:
             self.task_params = {}
@@ -46,9 +49,10 @@ class Task:
     def prepare(self, graph_params, eval=False):
         self.data_name = graph_params.data_name
         self.destination = SEP.join([self.results_root, "task_" + str(self), self.data_name])
-        self.run_string_list = [self.task_params.get('embedding', '')]
+        beta_str = str(self.task_params['beta'][0]) + '_beta' if 'beta' in self.task_params.keys() else ''
+        self.run_string_list = [self.task_params.get('embedding', ''), beta_str]#str(round(float(self.task_params.get('param_str', '')), 1))]
         self.run_string_list = [string for string in self.run_string_list if string]
-        self.f1_string_list = [self.task_params.get('embedding', ''), str(self.task_params.get('f1_threshold', ''))]
+        self.f1_string_list = [self.task_params.get('embedding', ''), str(self.task_params.get('f1_threshold', '')), beta_str]
         self.f1_string_list = [string for string in self.f1_string_list if string]
         self.runtime_file = SEP.join([self.destination, "_".join(self.run_string_list + ["runtime.csv"])])
         self.memory_file = SEP.join([self.destination, "_".join(self.run_string_list + ["memory.csv"])])
@@ -57,7 +61,7 @@ class Task:
         if not os.path.exists(self.results_dir) and not eval:
             os.makedirs(self.results_dir)
         elif not os.path.exists(self.results_dir):
-            raise Exception("results not found")
+            raise Exception(f"results not found: {self.results_dir}")
         self.results_files = self.get_results_files(graph_params, eval=eval)
         self.eval_files = self.get_eval_files()
         self.ids.append(graph_params.id)
@@ -190,7 +194,7 @@ class BipartiteProbabilisticMatchingTask(Task):
     def __str__(self):
         return '1_BipartiteProbabilisticMatching'
 
-class BipartiteProbabilisticMatchingNaiveTask(BipartiteProbabilisticMatchingTask):
+class BipartiteNaiveTask(BipartiteProbabilisticMatchingTask):
 
     def run(self, graph_params):
         start = time.time()
@@ -207,6 +211,8 @@ class BipartiteProbabilisticMatchingNaiveTask(BipartiteProbabilisticMatchingTask
         for graph_path, first_saving_path in zip(graph_params.files, self.results_files):
             first_saving_path_01 = first_saving_path[:-4] + "_01" + first_saving_path[-4:]
             first_saving_path_10 = first_saving_path[:-4] + "_10" + first_saving_path[-4:]
+            # MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
+            # MatchingProblem(graph_path, "flow_numeric", first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
             MatchingProblem(graph_path, "null_model", first_stage_params, first_saving_path_01, row_ind=0, col_ind=1)
             MatchingProblem(graph_path, "null_model", first_stage_params, first_saving_path_10, row_ind=1, col_ind=0)
 
@@ -221,13 +227,16 @@ class BipartiteProbabilisticMatchingNaiveTask(BipartiteProbabilisticMatchingTask
     #     pass
 
     def __str__(self):
-        return '1_BipartiteProbabilisticMatchingNaive'
+        return '5_BipartiteNaive'
 
 
 class MultipartiteCommunityDetectionTask(Task):
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
-        self.eval_methods = ['full_avg_acc', 'all_avg_acc', 'f1_score']
+        self.use_task_1_results = True
+        self.greedy = False
+        self.eval_methods = ['full_avg_acc', 'all_avg_acc', 'f1_score', 'fixed_f1_score']
+
 
     def run(self, graph_params):
         start = time.time()
@@ -255,7 +264,8 @@ class MultipartiteCommunityDetectionTask(Task):
                   "beta": self.task_params.get("beta", [10.] * num_of_groups),
                   "assess": self.task_params.get("assess", False),
                   "ground_truth": self.task_params.get("ground_truth", None),
-                  "draw": self.task_params.get("draw", False)}
+                  "draw": self.task_params.get("draw", False),
+                  'greedy': self.greedy}
 
         run_louvain(**params)
 
@@ -282,7 +292,7 @@ class MultipartiteCommunityDetectionTask(Task):
 
             num_of_communities = max([int(a.split('_')[1]) for b in coms.values() for a in b])
             gt_list = [tuple([str(i) + '_' + str(node) for i in range(num_of_groups)]) for node in
-                       range(num_of_communities)]
+                       range(1, num_of_communities + 1)]
             if graph_params.gt:
                 with open(graph_params.gt, "r", newline='') as csvfile:
                     file_data = list(csv.reader(csvfile))
@@ -313,6 +323,35 @@ class MultipartiteCommunityDetectionTask(Task):
                 y_pred = [int(a in pred) for a in all]
                 precision, recall = precision_score(y_true, y_pred), recall_score(y_true, y_pred)
                 score = f1_score(y_true, y_pred)
+            elif method == 'fixed_f1_score':
+                pred = []
+                graph = MultipartiteLol()
+                graph.convert_with_csv(graph_params.files, graph_params.from_to_ids)
+                graph.set_nodes_type_dict()
+                edges = [tuple(edge[:2]) for edge in graph.edges()]
+                y_true, y_pred = [], []
+                for i, edge in enumerate(edges):
+
+                    if (i+1)%100000 == 0:
+                        print(f"{i+1}/{len(edges)} edges")
+                    if int(edge[0][0]) > int(edge[1][0]):
+                        continue
+                    edge_in_pred = 0
+                    for com in list(coms.values()):
+                        if edge[0] in com and edge[1] in com:
+                            edge_in_pred = 1
+                            break
+                    if edge_in_pred:
+                        pred.append(edge)
+                all = set(gt_list + pred)
+                y_true = [int(a in gt_list) for a in all]
+                y_pred = [int(a in pred) for a in all]
+                # for com in gt_list:
+                #     if edge[0] in com and edge[1] in com:  # set(edge).issubset(set(com)):
+                #         edge_in_gs = 1
+                #         break
+                #     y_true.append(edge_in_gs)
+                score = f1_score(y_true, y_pred)
             else:
                 raise Exception('method ' + method + ' not found!')
         # else:
@@ -333,9 +372,17 @@ class MultipartiteCommunityDetectionTask(Task):
         return '2_MultipartiteCommunityDetection'
 
 
+class MultipartiteGreedyTask(MultipartiteCommunityDetectionTask):
+    def __init__(self, results_root='.', task_params=None):
+        super().__init__(results_root, task_params)
+        self.greedy = True
+    def __str__(self):
+        return '6_MultipartiteGreedy'
+
 class PathwayProbabilitiesCalculationTask(Task):
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
+        self.use_task_1_results = True
         self.eval_methods = ['avg_acc', 'norm_avg_acc', 'winner_acc', 'top5_acc', 'f1_score']
 
     def run(self, graph_params):
@@ -439,6 +486,7 @@ class PathwayProbabilitiesCalculationTask(Task):
 class ProbabilitiesUsingEmbeddingsTask(Task):
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
+        self.use_task_1_results = True
         self.eval_methods = ['avg_acc', 'norm_avg_acc', 'winner_acc', 'top5_acc', 'f1_score']
 
     def run(self, graph_params):

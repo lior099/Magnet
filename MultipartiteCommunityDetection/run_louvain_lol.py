@@ -40,20 +40,47 @@ def check_accuracy(partition):
     # print("counts",counts)
     # print("counts_good", counts_good)
 
-def run_louvain(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True):
+def run_louvain(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True, greedy=False):
     """
     Run our Louvain-like method for community detection, constraining also that the more nodes of the same type there
     are in a community, the worse."""
     num_types = graph.groups_number
 
     assert len(beta) == num_types, "Beta vector length mismatches the number of types"
-    partition = best_partition(graph, resolution=res, beta_penalty=beta)
+    if greedy:
+        partition = greedy_partition(graph)
+    else:
+        partition = best_partition(graph, resolution=res, beta_penalty=beta)
     partition_to_csv(graph, partition, dump_name)
     # plot_toy_graphs(graph=graph, partition=partition, name="color", graphs_directions=[(0, 1)])
     # if assess:
     #     measure_performance(partition, ground_truth)
     # if draw:
     #     draw_results(graph, partition, dump_name)
+
+def greedy_partition(graph):
+    groups, partition = [], {}
+    for node in graph.nodes():
+        if node[0] != '0':
+            continue
+        neighbors_shapes = [str(i) for i in range(graph.groups_number) if str(i) != node[0]]
+        neighbors = graph.neighbors(node)
+        neighbors_dict = {}
+        for shape in neighbors_shapes:
+            shape_neighbors = [neighbor for neighbor in neighbors[0] if neighbor[0] == shape]
+            shape_weights = [weight for neighbor, weight in zip(*neighbors) if neighbor[0] == shape]
+            if len(shape_neighbors) > 0:
+                neighbors_dict[shape] = (shape_neighbors, shape_weights)
+
+        best_neighbors = []
+        for shape_neighbors, shape_weights in neighbors_dict.values():
+            best_neighbor_idx = np.argmax(shape_weights)
+            best_neighbors.append(shape_neighbors[best_neighbor_idx])
+        groups.append([node] + best_neighbors)
+    for i, group in enumerate(groups):
+        for node in group:
+            partition[node] = i
+    return partition
 
 
 def task2(graph, dump_name, res, beta, assess=True, ground_truth=None, draw=True):

@@ -1,3 +1,7 @@
+
+# This version of MAGNET contains all the features from the thesis. BUT this is not a very user friendly version.
+# To make it organized and use friendly, more work need to be done.
+
 import argparse
 import os
 from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3
@@ -20,6 +24,7 @@ else:
 
 
 def main():
+    print("main() function is OLD! Use run_tasks.py file instead!")
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", "-T")
     parser.add_argument("--source", "-S")
@@ -235,4 +240,4 @@ def main():
 
 
 if __name__ == '__main__':
-    print()
+    print("main() function is OLD! Use run_tasks.py file instead!")

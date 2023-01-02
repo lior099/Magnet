@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 from MultipartiteCommunityDetection.status_directed_lol import Status_Lol
 from multipartite_lol_graph import MultipartiteLol
 
@@ -64,6 +65,7 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
            having numbers of vertices of the same types in a single community.
     :return: The whole dendrogram.
     """
+
     if not graph.is_directed():
         raise TypeError("Bad graph type, use only directed graph")
     # If there is no edge in the graph, the best partition is every node in its community.
@@ -79,8 +81,8 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
     # print("--------------lol-------------")
     # print(', '.join("%s: %s" % item for item in attrs.items()))
     status_list = []
-    __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
 
+    __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
     # attrs = vars(status)
     # print("--------------lol-------------")
     # print(', '.join("%s: %s" % item for item in attrs.items()))
@@ -98,6 +100,7 @@ def generate_dendrogram(graph, part_init=None, weight='weight', nodetype='type',
     while True:
         __one_level(current_graph, status, weight, nodetype, resolution, beta_penalty)
         new_mod = __modularity(status, resolution, beta_penalty)
+        # print(f"Modularity = {new_mod}, diff = {new_mod - mod}")
         if new_mod - mod < __MIN:
             break
         partition = __renumber(status.node2com)
@@ -158,7 +161,10 @@ def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
     # print(cur_mod, "lol")
     new_mod = cur_mod
     np.random.seed(42)
+    i = 0
     while modified:
+
+        i += 1
         cur_mod = new_mod
         modified = False
         nodes_list = list(graph.nodes())
@@ -193,13 +199,16 @@ def __one_level(graph, status, weight_key, nodetype, resolution, beta_penalty):
                 if incr > best_increase:
                     best_increase = incr
                     best_com = com
+
             __insert(node, best_com, neigh_com_in.get(best_com, 0.) + neigh_com_out.get(best_com, 0.), node_type_vec,
                      status)
             if best_com != com_node:
                 modified = True
+        # print(f"not done {i}: len(node2com)={len(set(status.node2com.values()))} {datetime.now()}")
         new_mod = __modularity(status, resolution, beta_penalty)
         if new_mod - cur_mod < __MIN:
             break
+    # print(f"FINISH modified len(node2com)={len(set(status.node2com.values()))}")
 
 
 def __neighcom(node, graph, status, weight_key):
@@ -217,7 +226,7 @@ def __neighcom(node, graph, status, weight_key):
         if neighbor != node:
             edge_weight = graph.get_edge_data(neighbor, node).get(weight_key, 1)
             in_com = status.node2com[neighbor]
-            weights_in[in_com] = weights_out.get(in_com, 0) + edge_weight
+            weights_in[in_com] = weights_in.get(in_com, 0) + edge_weight
     return weights_in, weights_out
 
 def __remove(node, com, weight, node_type, status):
