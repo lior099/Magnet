@@ -8,4 +8,6 @@ Results_old3/
 Results/data/*
 !Results/data/Abt-Buy
 !Results/data/restaurant
+!Results/data/toy
+!Results/data/toy_multi
 Code/compare_algorithm.py
