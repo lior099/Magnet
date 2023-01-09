@@ -117,7 +117,7 @@ class BipartiteProbabilisticMatchingTask(Task):
 
     def run(self, graph_params):
         start = time.time()
-        # print("Running task",str(self), 'on graph', graph_params.name)
+        print("Running task", str(self), 'on graph', graph_params.name)
         self.prepare(graph_params)
 
         # file_names = sys.argv[2:len(sys.argv)]
@@ -198,7 +198,7 @@ class BipartiteNaiveTask(BipartiteProbabilisticMatchingTask):
 
     def run(self, graph_params):
         start = time.time()
-        # print("Running task",str(self), 'on graph', graph_params.name)
+        print("Running task",str(self), 'on graph', graph_params.name)
         self.prepare(graph_params)
 
         # file_names = sys.argv[2:len(sys.argv)]

@@ -84,11 +84,6 @@ def create_from_to_ids(num_of_groups):
     return from_to_ids
 
 def grid_search(data_name):
-
-    # Data names: [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy]
-    #
-    # Long version:
-    #
     best_score = 0
     best_params = None
     results_root = "Results"
@@ -120,10 +115,8 @@ def grid_search(data_name):
 
 
 def full_run(beta):
-    #restaurant
     real_graphs = ['Fodors-Zagats', 'Amazon-Google', 'DBLP-ACM', 'DBLP-GoogleScholar', 'Abt-Buy']
     simulation_graphs = ['false_mass', 'noisy_edges', 'removed_nodes', 'nodes']
-    # simulation_graphs = ['removed_nodes']
     for data_name in simulation_graphs:
         # grid_search(data_name)
         run_task(task_num="1", data_name=data_name, results_root="Results", task_params={'num_of_groups': 3})
@@ -160,38 +153,10 @@ def eval(task, graphs_params, methods=None):
     if not methods:
         methods = task.eval_methods
 
-    # if not methods:
-    #     if task == '1':
-    #         methods = ['avg', 'winner', 'top5']
-    #     elif task == '2':
-    #         methods = ['avg_full', 'avg_all']
-    #     elif task == '3':
-    #         methods = ['avg', 'avg_norm', 'winner', 'top5']
-    #     elif task == '4':
-    #         methods = ['avg', 'avg_norm', 'winner', 'top5']
-    #     else:
-    #         raise Exception('task', task, 'not found')
-
-    # destinations = eval_destinations(task.destination, task, data_name, methods, params)
-    # # results_destination = os.path.join(location, "_".join(["task", task, data_name, "results"]))
-    # if not os.path.exists(destinations['results']):
-    #     raise Exception("results not found")
-    # results_dirs = [os.path.join(destinations['results'], results_dir) for results_dir in
-    #                 os.listdir(destinations['results'])]
-    # if len(results_dirs) == 0:
-    #     raise Exception("results are empty")
-    # graphs_names = ['_'.join(graph_dir.split('_')[2:-1]) for graph_dir in os.listdir(destinations['results'])]
-
-
     for method in methods:
         print('Method:', method)
-        # accuracy_list = []
-        # x_list = []
-        # accuracy_destination = os.path.join(location, "_".join(["task", task, data_name, method, "accuracy.csv"]))
         task.clean()
         for graph_params in graphs_params:
-            # print("Evaluating graph", graph_name, "with method", method)
-            # results_files = [os.path.join(results_dir, results_file) for results_file in os.listdir(results_dir)]
             task.eval(graph_params, method)
         task.save_eval(method)
         print("Scores:", task.scores, "Best:", max(task.scores))
@@ -219,15 +184,12 @@ def run_task(task_num, data_name, results_root, task_params, evaluate=True):
 def examples():
     print("Here are some examples!")
     # grid_search()
-    # for i in np.arange(1.8, 0.3, -0.2):
-    # for i in [0, 0.0001, 0.001, 0.01, 0.1, 0.3, 0.5, 1, 1.5, 2, 3, 4, 5, 7, 10]:
-    #     beta = [i] * 2
-    #     full_run(beta)
-    # full_run([0.1] * 3)
 
     # Data names: [false_mass, nodes, noisy_edges, removed_nodes, restaurant, test, Abt-Buy, toy, toy_multi]
     # tasks: [BipartiteProbabilisticMatchingTask, MultipartiteCommunityDetectionTask, BipartiteNaiveTask, MultipartiteGreedyTask]
-    #
+
+
+    ##################################
     # Long version:
     #
     # results_root = "Results"
@@ -243,7 +205,10 @@ def examples():
     #     task.task_params = task_params
     #     graphs_params = get_graphs_params(task, results_root, data_name=data_name)
     #     eval(task=task, graphs_params=graphs_params, methods=['f1_score'])
+    ##################################
 
+
+    ##################################
     # Short version:
     #
     # examples for 2 groups:
@@ -252,14 +217,17 @@ def examples():
     # run_task(task_num="3", data_name="test", results_root='Results', task_params={'num_of_groups': 2})
     # run_task(task_num='4', data_name='test', results_root='Results', task_params={'num_of_groups': 2, 'embedding': 'node2vec'})
     # run_task(task_num='4', data_name='test', results_root='Results', task_params={'num_of_groups': 2, 'embedding': 'ogre', 'epsilon': 0.1})
-
+    #
     # examples for 3 groups:
     # run_task(task_num="1", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
     # run_task(task_num="2", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
     # run_task(task_num="3", data_name="removed_nodes", results_root='Results', task_params={'num_of_groups': 3})
     # run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'node2vec'})
     # run_task(task_num='4', data_name='removed_nodes', results_root='Results', task_params={'num_of_groups': 3, 'embedding': 'ogre', 'epsilon': 0.1})
+    ##################################
 
+
+    ##################################
     # Plots:
     # plot_all_results('results_2.png')
     # plot_all_results_task_2()
@@ -267,47 +235,13 @@ def examples():
     # plot_toy_graphs(file_names=graphs_params[0].files, name="before", graphs_directions=[(0, 1)], problem=[4, 9], edge_width=0.14)
     # plot_toy_graphs(file_names=[task.results_files[0]], name="after_01", directed=True, graphs_directions=[(0, 1)], header=True, integer=False, problem=[0.16, 0.79], edge_width=3)
     # plot_toy_graphs(file_names=[task.results_files[1]], name="after_10", directed=True, graphs_directions=[(1, 0)], header=True, integer=False, problem=[0.82, 0.16], edge_width=3)
-
+    #
     # plot_toy_graphs(file_names=graphs_params[0].files, name="multi_0", graphs_directions=[(0, 1), (0, 2), (1, 2)], problem=[])
     # plot_toy_graphs(file_names=graphs_params[0].files, name="multi_1", graphs_directions=[(0, 1), (0, 2), (1, 2)], problem=[], edge_width=1)
     # plot_toy_graphs(file_names=graphs_params[0].files, name="multi_2", graphs_directions=[(0, 1), (0, 2), (1, 2)],problem=[], edge_width=1, colored=True)
+    ##################################
 
 if __name__ == '__main__':
-    # This is the main file where we run stuff.
-    # Here we run an example on the "toy" dataset with 2 shapes and "toy_multi" dataset with 3 shapes.
-
-    # Some initializations
-    random.seed(0)
-    np.random.seed(0)
-    print(f'Time is: {datetime.now()}')
-    if 'Code' not in os.listdir(os.getcwd()):
-        raise Exception("Bad pathing, use the command os.chdir() to make sure you work on Magnet directory")
-    start = time.time()
-
-    # Here we run on "toy" dataset with 2 shapes (groups).
-    data_name = "toy"
-    run_task(task_num="1", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
-    run_task(task_num="2", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2, 'beta': [0.1, 0.1]})
-    run_task(task_num="3", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
-    # Task 4 is not relevant anymore
-    # run_task(task_num='4', data_name=data_name, results_root="Results", task_params={'num_of_groups': 2, 'embedding': 'node2vec'})
-    run_task(task_num="5", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
-    run_task(task_num="6", data_name=data_name, results_root="Results", task_params={'num_of_groups': 2})
-
-    # Here we run on "toy_multi" dataset with 3 shapes (groups).
-    data_name = "toy_multi"
-    run_task(task_num="1", data_name=data_name, results_root="Results", task_params={'num_of_groups': 3})
-    run_task(task_num="2", data_name=data_name, results_root="Results", task_params={'num_of_groups': 3, 'beta': [0.1, 0.1, 0.1]})
-    run_task(task_num="3", data_name=data_name, results_root="Results", task_params={'num_of_groups': 3})
-    # Task 4 is not relevant anymore
-    # run_task(task_num='4', data_name=data_name, results_root="Results", task_params={'num_of_groups': 2, 'embedding': 'node2vec'})
-    run_task(task_num="5", data_name=data_name, results_root="Results", task_params={'num_of_groups': 3})
-    run_task(task_num="6", data_name=data_name, results_root="Results", task_params={'num_of_groups': 3})
-
-
-
-    print('TOTAL TIME:', time.time() - start)
-    print(f'Time is: {datetime.now()}')
-
+    print()
 
 
