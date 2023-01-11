@@ -1,6 +1,12 @@
 # Bipartite Probabilistic Matching and Multipartite Community Detection and Pathway Probabilities Calculation 
 Shoval Frydman, Kfir Salomon, Itay Levinas, Haim Isakov, Lior Shifman.
 
+## Dependencies:
+
+- python >=3.6.8
+- numpy
+- networkx
+
 ## Problem Description
 1. Given a weighted bipartite graph, we calculate a probability matrix ***P***, such that ***P[i, j]*** represents the 
 probability for the node ***i*** to match the node ***j***.  
@@ -20,12 +26,4 @@ The algorithms are implemented in the code directory of each algorithm (the flow
 numeric). The Louvain code implementation is based on the 
 [python-louvain](https://python-louvain.readthedocs.io/en/latest/) package.
 
-## How to Run
--T task-number -S data-source-directory -D data-saving-directory  
-For example:
-```
--T 3 -S yoram_network_4 -D yoram_network_4
-```
-For each task we want to run, we first store the data in AlgoName/data/data-source-directory and the results will be in AlgoName/results/data-saving-directory.  
-Note: passway probabilitis calculation receives normalized multi-partite graph, so it is recommended to run the Bipartite Probabilistic Matching first.  
  

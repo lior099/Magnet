@@ -23,6 +23,16 @@ from StaticGraphEmbeddings.evaluation_tasks.calculate_static_embeddings import o
 SEP = '/'
 
 
+"""
+#### README ####
+This file is for implementing the actual run and evaluation of each of the tasks.
+For each task we implemented the followings:
+1. prepare() method: We call it before the run to initialize some properties.
+2. run() method: Run the task using the appropriate dir of python code. This method save the results to the Results dir!
+3. eval() method: Eval the task, using ONLY result files from the Results dir.
+4. __str__() method: A string representation for the task.
+"""
+
 class Task:
     def __init__(self, results_root='.', task_params=None):
         self.results_root = results_root
@@ -111,6 +121,11 @@ class Task:
 
 
 class BipartiteProbabilisticMatchingTask(Task):
+    """
+    This is the first algorithm in MAGNET (also called here task_1).
+    This is the Bipartite Probabilistic Matching method, using code from BipartiteProbabilisticMatching dir.
+    This gets data from Results/data, and output results to Results/task_1 .
+    """
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
         self.eval_methods = ['avg_acc', 'winner_acc', 'top5_acc', 'f1_score']
@@ -195,7 +210,11 @@ class BipartiteProbabilisticMatchingTask(Task):
         return '1_BipartiteProbabilisticMatching'
 
 class BipartiteNaiveTask(BipartiteProbabilisticMatchingTask):
-
+    """
+    This is the first task in MAGNET, only using naive algorithm (also called here task_5).
+    This is the Bipartite Probabilistic Matching method, using code from BipartiteProbabilisticMatching dir.
+    This gets data from Results/data, and output results to Results/task_5 .
+    """
     def run(self, graph_params):
         start = time.time()
         print("Running task",str(self), 'on graph', graph_params.name)
@@ -231,6 +250,11 @@ class BipartiteNaiveTask(BipartiteProbabilisticMatchingTask):
 
 
 class MultipartiteCommunityDetectionTask(Task):
+    """
+    This is the second task in MAGNET (also called here task_2).
+    This is the Multipartite Community Detection method, using code from MultipartiteCommunityDetection dir.
+    This gets data from Results/task_1, and output results to Results/task_2 .
+    """
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
         self.use_task_1_results = True
@@ -373,6 +397,11 @@ class MultipartiteCommunityDetectionTask(Task):
 
 
 class MultipartiteGreedyTask(MultipartiteCommunityDetectionTask):
+    """
+    This is the second task in MAGNET, using a greedy method (also called here task_6).
+    This is the Multipartite Community Detection method, using code from MultipartiteCommunityDetection dir.
+    This gets data from Results/task_1, and output results to Results/task_6 .
+    """
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
         self.greedy = True
@@ -380,6 +409,11 @@ class MultipartiteGreedyTask(MultipartiteCommunityDetectionTask):
         return '6_MultipartiteGreedy'
 
 class PathwayProbabilitiesCalculationTask(Task):
+    """
+    This is the third task in MAGNET (also called here task_3).
+    This is the Pathway Probabilities Calculation method, using code from PathwayProbabilitiesCalculation/pathway_probabilities_calculation.py file.
+    This gets data from Results/task_1, and output results to Results/task_3 .
+    """
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
         self.use_task_1_results = True
@@ -484,6 +518,11 @@ class PathwayProbabilitiesCalculationTask(Task):
 
 
 class ProbabilitiesUsingEmbeddingsTask(Task):
+    """
+    This is a task that is NOT (as of now) in MAGNET paper (also called here task_4).
+    This is using code from PathwayProbabilitiesCalculation/probabilities_using_embeddings.py file.
+    This gets data from Results/task_1, and output results to Results/task_4 .
+    """
     def __init__(self, results_root='.', task_params=None):
         super().__init__(results_root, task_params)
         self.use_task_1_results = True

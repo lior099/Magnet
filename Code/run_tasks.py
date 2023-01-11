@@ -3,36 +3,28 @@
 
 
 import os
-import random
-import time
 import sys
-from datetime import datetime
 
 from Code.graphs import Params
 from Code.tasks import BipartiteProbabilisticMatchingTask, MultipartiteCommunityDetectionTask, \
     PathwayProbabilitiesCalculationTask, ProbabilitiesUsingEmbeddingsTask, BipartiteNaiveTask, MultipartiteGreedyTask
 
 sys.path.append(os.path.abspath('..'))
-from PathwayProbabilitiesCalculation.pathway_probabilities_calculation import task3, eval_task3
-from PathwayProbabilitiesCalculation.probabilities_using_embeddings import task4, eval_task4
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-from BipartiteProbabilisticMatching.matching_solutions import task1, eval_task1, plot_toy_graphs
 
 import numpy as np
 from memory_profiler import memory_usage
-import csv
-
-from multipartite_lol_graph import MultipartiteLol
-
-lol = True
-if lol:
-    from MultipartiteCommunityDetection.run_louvain_lol import task2, eval_task2
-else:
-    from MultipartiteCommunityDetection.run_louvain import task2, load_graph_from_files
-
 SEP = '/'
+
+"""
+#### README ####
+This file is just functions that help us run the tasks.
+There is no logic in here, mainly:
+ - Paths manipulation (the results dir is very complex)
+ - Here we make sure the task 1 take his data from Results/data, and the rest take it from Results/task_1
+ - Initialize some objects
+ - Grid search and full runs
+ - Examples
+"""
 
 def get_data_path(task, results_root, data_name):
     if task.use_task_1_results:

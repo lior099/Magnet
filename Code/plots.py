@@ -1,6 +1,9 @@
 
-
-# Here are some functions for plotting
+"""
+#### README ####
+This file is for plotting. Notice some imports are missing, if you want to use them read exactly what they do.
+"""
+#
 
 def plot_graph(data_paths, colors, x_label, y_label, log=False, log_x=False, save_path=None, my_labels=None, title='', axis=None, invert_labels=False):
     title_size = 13
