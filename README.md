@@ -1,12 +1,6 @@
 # Bipartite Probabilistic Matching and Multipartite Community Detection and Pathway Probabilities Calculation 
 Shoval Frydman, Kfir Salomon, Itay Levinas, Haim Isakov, Lior Shifman.
 
-## Dependencies:
-
-- python >=3.6.8
-- numpy
-- networkx
-
 ## Problem Description
 1. Given a weighted bipartite graph, we calculate a probability matrix ***P***, such that ***P[i, j]*** represents the 
 probability for the node ***i*** to match the node ***j***.  
